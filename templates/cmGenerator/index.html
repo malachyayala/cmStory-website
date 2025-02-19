@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FIFA Story Generator</title>
+    <style>
+        .card { border: 1px solid #ccc; padding: 20px; margin: 10px; }
+        .loader { display: none; width: 50px; }
+    </style>
+</head>
+<body>
+    <h1>FIFA Career Story Generator</h1>
+    <button onclick="generateStory()" id="generateBtn">Generate New Story</button>
+    <img src="https://i.gifer.com/ZZ5H.gif" class="loader" id="loader">
+
+    <div class="card" id="clubCard"></div>
+    <div class="card" id="formationCard"></div>
+    <div class="card" id="challengeCard"></div>
+    <div class="card" id="backgroundCard"></div>
+
+    <script>
+    function generateStory() {
+        const btn = document.getElementById('generateBtn');
+        const loader = document.getElementById('loader');
+        btn.disabled = true;
+        loader.style.display = 'inline-block';
+
+        fetch('/generate/')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('clubCard').innerHTML = `
+                    <h3>Your Club: ${data.club}</h3>
+                    ${data.background.split('\n\n')[0]}
+                `;
+                
+                document.getElementById('formationCard').innerHTML = `
+                    <h3>Formation: ${data.formation}</h3>
+                    <p>${data.background.split('\n\n')[1]}</p>
+                `;
+
+                document.getElementById('challengeCard').innerHTML = `
+                    <h3>Challenge: ${data.challenge}</h3>
+                    <p>${data.background.split('\n\n')[2]}</p>
+                `;
+
+                document.getElementById('backgroundCard').innerHTML = `
+                    <h3>Full Background</h3>
+                    <p>${data.background}</p>
+                `;
+
+                btn.disabled = false;
+                loader.style.display = 'none';
+            });
+    }
+    </script>
+</body>
+</html>
