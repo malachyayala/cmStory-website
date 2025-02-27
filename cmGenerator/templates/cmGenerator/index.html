@@ -37,16 +37,25 @@
         #generateBtn:hover {
             background-color: #0056b3;
         }
+        .button-container {
+            display: flex;
+            justify-content: center; /* Keep buttons centered */
+            gap: 10px; /* Add spacing between buttons */
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container text-center">
         <div class="text-right my-3">
             {% if user.is_authenticated %}
-                <p>Welcome, {{ user.username }}! <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a></p>
+            <p>
+                <a href="{% url 'my_stories' %}" class="btn btn-outline-secondary btn-sm">My Stories</a>
+                <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
+            </p>
             {% else %}
                 <p>
-                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Login</a> 
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Login</a>
                     <a href="{% url 'register' %}" class="btn btn-outline-success btn-sm">Register</a>
                 </p>
             {% endif %}
@@ -61,52 +70,96 @@
                 <div class="card mb-3" id="challengeCard"></div>
                 <div class="card mb-3" id="backgroundCard"></div>
     
-                <button onclick="generateStory()" id="generateBtn" class="btn btn-primary btn-lg mb-3">
-                    Generate New Story
-                </button>
+                <div class="button-container">
+                    <button onclick="generateStory()" id="generateBtn" class="btn btn-primary btn-lg mb-3">Generate New Story</button>
+                    <button onclick="saveStory()" id="saveStoryBtn" class="btn btn-success btn-lg mb-3">Save Story</button>
+                </div>
                 <div class="text-center">
                     <img src="https://i.gifer.com/ZZ5H.gif" class="loader" id="loader" alt="Loading...">
                 </div>
             </div>
         </div>
     </div>
+    
 
     <script>
         function generateStory() {
             const btn = document.getElementById('generateBtn');
             const loader = document.getElementById('loader');
+            const saveBtn = document.getElementById('saveStoryBtn');
+    
             btn.disabled = true;
             loader.style.display = 'inline-block';
-
-            fetch('/generate/')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('clubCard').innerHTML = `
-                        <h3>Your Club: ${data.club}</h3>
-                    `;
+            saveBtn.style.display = 'none';  // Hide "Save Story" button initially
+    
+            fetch('/generate/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',  // Include CSRF token
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    // Display generated story
+                    document.getElementById('clubCard').innerHTML = `<h3>Your Club: ${data.club}</h3>`;
+                    document.getElementById('formationCard').innerHTML = `<h3>Formation: ${data.formation}</h3>`;
+                    document.getElementById('challengeCard').innerHTML = `<h3>Challenge: ${data.challenge}</h3>`;
+                    document.getElementById('backgroundCard').innerHTML = `${data.background}`;
+    
+                    // Store data attributes for saving later
+                    saveBtn.setAttribute("data-club", data.club);
+                    saveBtn.setAttribute("data-formation", data.formation);
+                    saveBtn.setAttribute("data-challenge", data.challenge);
+                    saveBtn.setAttribute("data-background", data.background);
                     
-                    document.getElementById('formationCard').innerHTML = `
-                        <h3>Formation: ${data.formation}</h3>
-                    `;
-
-                    document.getElementById('challengeCard').innerHTML = `
-                        <h3>Challenge: ${data.challenge}</h3>
-                    `;
-
-                    document.getElementById('backgroundCard').innerHTML = `
-                        ${data.background}
-                    `;
-
-                    btn.disabled = false;
-                    loader.style.display = 'none';
+                    saveBtn.style.display = 'block';  // Show "Save Story" button
+                }
+                btn.disabled = false;
+                loader.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.disabled = false;
+                loader.style.display = 'none';
+            });
+        }
+    
+        function saveStory() {
+            const saveBtn = document.getElementById('saveStoryBtn');
+            const club = saveBtn.getAttribute("data-club");
+            const formation = saveBtn.getAttribute("data-formation");
+            const challenge = saveBtn.getAttribute("data-challenge");
+            const background = saveBtn.getAttribute("data-background");
+    
+            fetch('/save-story/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'club': club,
+                    'formation': formation,
+                    'challenge': challenge,
+                    'background': background
                 })
-                .catch(error => {
-                    console.error('Error:', error);
-                    btn.disabled = false;
-                    loader.style.display = 'none';
-                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Story saved successfully!");
+                } else {
+                    alert("Failed to save story.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
         }
     </script>
+    
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>

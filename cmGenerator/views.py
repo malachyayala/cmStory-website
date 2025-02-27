@@ -9,10 +9,48 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import logout
 import os
+from .models import Story
 from .utils.story_generator import generate_all
 
 def index(request):
     return render(request, 'cmGenerator/index.html')
+
+  # Ensures only logged-in users can generate stories
+def generate_story(request):
+    """Generates a new story but does NOT save it."""
+    if request.method == "POST":
+        data = generate_all()  # Generate new story data
+
+        return JsonResponse({
+            "success": True,
+            "club": data['club'],
+            "formation": data['formation'],
+            "challenge": data['challenge'],
+            "background": data['background']
+        })
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+@login_required
+def save_story(request):
+    """Saves a story when the user explicitly clicks 'Save Story'."""
+    if request.method == "POST":
+        club = request.POST.get("club")
+        formation = request.POST.get("formation")
+        challenge = request.POST.get("challenge")
+        background = request.POST.get("background")
+
+        if club and formation and challenge and background:
+            Story.objects.create(
+                user=request.user,
+                club=club,
+                formation=formation,
+                challenge=challenge,
+                background=background
+            )
+            return JsonResponse({"success": True, "message": "Story saved!"})
+
+    return JsonResponse({"error": "Failed to save story"}, status=400)
 
 def generate_story(request):
     data = generate_all()
@@ -49,3 +87,7 @@ def custom_login(request):
 def custom_logout(request):
     logout(request)
     return redirect('/login/')
+
+def my_stories(request):
+    stories = Story.objects.filter(user=request.user).order_by('-created_at')  # Get only user's stories
+    return render(request, 'cmGenerator/my_stories.html', {'stories': stories})
