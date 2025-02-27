@@ -1,5 +1,59 @@
-{% block content %}
-<div class="container text-center">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Saved Stories</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f4f9;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+        }
+        .story-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced vertical gap between cards */
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+        .story-card {
+            width: 100%;
+            max-width: 800px;
+            border: none;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 10px; /* Reduced padding for a smaller card */
+        }
+        .background-card {
+            width: 100%;
+            overflow-y: auto;
+        }
+        .formatted-background {
+            white-space: pre-wrap; /* Preserve whitespace and handle new lines */
+            line-height: 1.5; /* Adjust line height for readability */
+            font-size: 0.9rem; /* Ensures consistency with other text */
+        }
+        .small-text {
+            font-size: 0.9rem;
+        }
+        .story-date {
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
     <div class="text-right my-3">
         {% if user.is_authenticated %}
         <p>
@@ -8,45 +62,60 @@
         {% endif %}
     </div>
 
-    <h1 class="my-4">My Saved Stories</h1>
+    <h1 class="my-4 text-center">My Saved Stories</h1>
 
     <div class="row justify-content-center">
-        <div class="col-lg-10 col-md-12 col-sm-14">
+        <div class="col-lg-10"> <!-- Makes it centered but not too wide -->
             {% if stories %}
                 {% for story in stories %}
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <h3 class="card-title">Club: {{ story.club }}</h3>
-                        <h4 class="card-subtitle text-muted">Formation: {{ story.formation }}</h4>
-                        <p class="card-text"><strong>Challenge:</strong> {{ story.challenge }}</p>
-                        <div id="backgroundCard" class="card-text">{{ story.background }}</div>
-                        <p class="text-muted">Saved on: {{ story.created_at }}</p>
+                <div class="story-container">
+                    <div class="card story-card">
+                        <div class="card-body">
+                            <h4 class="card-title">Club: {{ story.club }}</h4>
+                        </div>
                     </div>
+
+                    <div class="card story-card">
+                        <div class="card-body">
+                            <h5 class="card-title">Formation: {{ story.formation }}</h5>
+                        </div>
+                    </div>
+
+                    <div class="card story-card">
+                        <div class="card-body">
+                            <h6 class="card-title">Challenge</h6>
+                            <p class="card-text small-text">{{ story.challenge }}</p>
+                        </div>
+                    </div>
+
+                    <div class="card story-card">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <a data-toggle="collapse" href="#background-{{ forloop.counter }}" role="button" aria-expanded="false" aria-controls="background-{{ forloop.counter }}">
+                                    Background <i class="fas fa-chevron-down"></i>
+                                </a>
+                            </h6>
+                            <div class="collapse" id="background-{{ forloop.counter }}">
+                                <!-- Use the safe filter here -->
+                                <p class="card-text small-text formatted-background">{{ story.background|safe }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted story-date text-center">Saved on: {{ story.created_at }}</p>
                 </div>
+                <hr> <!-- Divider between stories -->
                 {% endfor %}
             {% else %}
-                <p>No saved stories yet.</p>
+                <p class="text-center">No saved stories yet.</p>
             {% endif %}
         </div>
     </div>
 </div>
 
-<style>
-    body {
-        background-color: #f4f4f9;
-    }
-    .card {
-        border: none;
-        background-color: #e9ecef;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        margin: 20px 10px;
-        text-align: left;
-    }
-    #backgroundCard {
-        height: 200px;
-        overflow-y: auto;
-    }
-</style>
-{% endblock %}
+<!-- Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
