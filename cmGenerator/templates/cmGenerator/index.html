@@ -41,6 +41,17 @@
 </head>
 <body>
     <div class="container text-center">
+        <div class="text-right my-3">
+            {% if user.is_authenticated %}
+                <p>Welcome, {{ user.username }}! <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a></p>
+            {% else %}
+                <p>
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Login</a> 
+                    <a href="{% url 'register' %}" class="btn btn-outline-success btn-sm">Register</a>
+                </p>
+            {% endif %}
+        </div>
+        
         <h1 class="my-4">FIFA Career Story Generator</h1>
     
         <div class="row justify-content-center">

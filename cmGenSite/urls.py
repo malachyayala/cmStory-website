@@ -15,10 +15,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 # fifa_storyline/urls.py
-from django.urls import path
+from django.urls import include, path
 from cmGenerator import views
 
 urlpatterns = [
-    path('', views.index, name='index'),
+    path('', include('cmGenerator.urls')),  # Include generator app URLs
     path('generate/', views.generate_story, name='generate'),
 ]

@@ -33,7 +33,7 @@ def generate_club_background(club):
     client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
     
     response = client.chat.completions.create(
-        model='deepseek-r1-distill-qwen-14b',
+        model='your-model',
         messages=[{"role": "user", "content": generate_club_history_prompt(club)}],
         stream=False
     )
