@@ -23,6 +23,7 @@
             <h3>Season Stats:</h3>
             <form method="post" action="{% url 'save_season_stats' %}">
                 {% csrf_token %}
+                <input type="hidden" name="story_id" value="{{ story.id }}">
                 <table class="table table-striped">
                     <thead>
                         <tr>

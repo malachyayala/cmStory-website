@@ -98,7 +98,6 @@ def save_season_stats(request: HttpRequest) -> JsonResponse:
         assists = request.POST.get("assists")
         clean_sheets = request.POST.get("clean_sheets")
         season_avg = request.POST.get("season_avg")
-
         try:
             story = Story.objects.get(id=story_id)
         except ObjectDoesNotExist:
