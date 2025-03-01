@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Season Stats for {{ story.club }}</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container">
+    <div class="text-right my-3">
+        {% if user.is_authenticated %}
+        <p>
+            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
+        </p>
+        {% endif %}
+    </div>
+
+    <h1 class="my-4 text-center">Season Stats for {{ story.club }}</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h3>Season Stats:</h3>
+            <form method="post" action="{% url 'save_season_stats' %}">
+                {% csrf_token %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Player Name</th>
+                            <th>Season</th>
+                            <th>Appearances</th>
+                            <th>Goals</th>
+                            <th>Assists</th>
+                            <th>Clean Sheets</th>
+                            <th>Season Avg</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in season_stats %}
+                        <tr>
+                            <td contenteditable="true">{{ stat.player_name }}</td>
+                            <td contenteditable="true">{{ stat.season }}</td>
+                            <td contenteditable="true">{{ stat.appearances }}</td>
+                            <td contenteditable="true">{{ stat.goals }}</td>
+                            <td contenteditable="true">{{ stat.assists }}</td>
+                            <td contenteditable="true">{{ stat.clean_sheets }}</td>
+                            <td contenteditable="true">{{ stat.season_avg }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+
+            <h3>Add Season Stats:</h3>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="player_name">Player Name:</label>
+                    <input type="text" class="form-control" name="player_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="season">Season:</label>
+                    <input type="text" class="form-control" name="season" required>
+                </div>
+                <div class="form-group">
+                    <label for="appearances">Appearances:</label>
+                    <input type="number" class="form-control" name="appearances" required>
+                </div>
+                <div class="form-group">
+                    <label for="goals">Goals:</label>
+                    <input type="number" class="form-control" name="goals" required>
+                </div>
+                <div class="form-group">
+                    <label for="assists">Assists:</label>
+                    <input type="number" class="form-control" name="assists" required>
+                </div>
+                <div class="form-group">
+                    <label for="clean_sheets">Clean Sheets:</label>
+                    <input type="number" class="form-control" name="clean_sheets" required>
+                </div>
+                <div class="form-group">
+                    <label for="season_avg">Season Avg:</label>
+                    <input type="number" class="form-control" name="season_avg" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Stats</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

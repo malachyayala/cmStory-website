@@ -25,6 +25,10 @@
             align-items: center;
             width: 100%;
         }
+        .card-body {
+            margin-bottom: 10px; /* Adjust this value to reduce spacing */
+            padding: 10px; /* Adjust this value to reduce padding */
+        }
         .story-card-container {
             width: 100%;
             max-width: 800px;
@@ -93,7 +97,11 @@
                                 <p class="card-text small-text formatted-background">{{ story.background|safe }}</p>
                             </div>
                         </div>
-                    </div>
+
+                        <div class="card-body">
+                            <h6 class="card-title">Season Stats:</h6>
+                            <a href="{% url 'season_stats' story.id %}" class="btn btn-primary">View and Add Season Stats</a>
+                        </div>
                     <p class="text-muted story-date text-center">Saved on: {{ story.created_at }}</p>
                 </div>
                 <hr> <!-- Divider between stories -->
