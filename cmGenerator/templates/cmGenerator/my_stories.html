@@ -86,6 +86,14 @@
                         <div class="card-body">
                             <h6 class="card-title">Challenge: {{ story.challenge }}</h6>
                         </div>
+
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <a href="{% url 'season_stats' story.id %}" class="text-primary" style="text-decoration: none;">
+                                    Season Stats <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </h6>
+                        </div>
                 
                         <div class="card-body">
                             <h6 class="card-title">
@@ -98,10 +106,6 @@
                             </div>
                         </div>
 
-                        <div class="card-body">
-                            <h6 class="card-title">Season Stats:</h6>
-                            <a href="{% url 'season_stats' story.id %}" class="btn btn-primary">View and Add Season Stats</a>
-                        </div>
                     <p class="text-muted story-date text-center">Saved on: {{ story.created_at }}</p>
                 </div>
                 <hr> <!-- Divider between stories -->

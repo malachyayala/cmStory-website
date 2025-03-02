@@ -38,9 +38,17 @@ def generate_club_background(club):
         stream=False
     )
     final = response.choices[0].message.content
+    
+    # Remove any prefixes before the first <h4> tag
+    if '<h4>' in final:
+        final = final[final.find('<h4>'):]
+    
+    # Clean up any other potential markers
     noThinkResponse = final.split('</think>')[-1].strip()
     noHTMLResponse = noThinkResponse.split('```html')[-1].strip()
-    return noHTMLResponse.split('```')[0].strip()
+    cleanResponse = noHTMLResponse.split('```')[0].strip()
+    
+    return cleanResponse
 
 def generate_all():
     data_dir = os.path.join(settings.BASE_DIR, 'cmGenerator/data')
