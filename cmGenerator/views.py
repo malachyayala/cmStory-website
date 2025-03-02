@@ -315,11 +315,18 @@ def save_season_awards(request, story_id):
                 story=story,
                 season=season,
                 defaults={
+                    # League Winners
                     'la_liga_winner': request.POST.get('la_liga_winner', ''),
                     'serie_a_winner': request.POST.get('serie_a_winner', ''),
                     'bundesliga_winner': request.POST.get('bundesliga_winner', ''),
                     'ligue_1_winner': request.POST.get('ligue_1_winner', ''),
                     'premier_league_winner': request.POST.get('premier_league_winner', ''),
+                    # Cup Winners
+                    'champions_league_winner': request.POST.get('champions_league_winner', ''),
+                    'europa_league_winner': request.POST.get('europa_league_winner', ''),
+                    'conference_league_winner': request.POST.get('conference_league_winner', ''),
+                    'super_cup_winner': request.POST.get('super_cup_winner', ''),
+                    # Individual Awards
                     'balon_dor_winner': request.POST.get('balon_dor_winner', ''),
                     'golden_boy_winner': request.POST.get('golden_boy_winner', ''),
                 }
@@ -327,7 +334,6 @@ def save_season_awards(request, story_id):
             
             return JsonResponse({'success': True})
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
-    
-    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+            return JsonResponse({'success': False, 'error': str(e)})
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
 

@@ -45,11 +45,18 @@ class SeasonPlayerStats(models.Model):
 class SeasonAwards(models.Model):
     story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='season_awards')
     season = models.CharField(max_length=10)
+    # League Winners
     la_liga_winner = models.CharField(max_length=100, blank=True)
     serie_a_winner = models.CharField(max_length=100, blank=True)
     bundesliga_winner = models.CharField(max_length=100, blank=True)
     ligue_1_winner = models.CharField(max_length=100, blank=True)
     premier_league_winner = models.CharField(max_length=100, blank=True)
+    # Cup Winners
+    champions_league_winner = models.CharField(max_length=100, blank=True)
+    europa_league_winner = models.CharField(max_length=100, blank=True)
+    conference_league_winner = models.CharField(max_length=100, blank=True)
+    super_cup_winner = models.CharField(max_length=100, blank=True)
+    # Individual Awards
     balon_dor_winner = models.CharField(max_length=100, blank=True)
     golden_boy_winner = models.CharField(max_length=100, blank=True)
 

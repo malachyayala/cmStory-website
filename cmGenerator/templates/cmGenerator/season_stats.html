@@ -17,6 +17,13 @@
             border-color: #80bdff;
             box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
         }
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 200px;
+        }
     </style>
 </head>
 <body>
@@ -50,10 +57,14 @@
                 </button>
             </div>
         </div>
-
-        <!-- Single Stats Table -->
-        <div class="row justify-content-center">
-            <div class="col-lg-12">
+<!-- Replace the existing Single Stats Table with this card format section -->
+<div class="row justify-content-center">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Season Stats for Season {{ selected_season }}</h5>
+            </div>
+            <div class="card-body">
                 <form id="edit-stats-form" method="post" action="{% url 'save_season_stats' story.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="story_id" value="{{ story.id }}">
@@ -87,85 +98,120 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="button-group mt-3">
-                        <button type="button" id="add-row-btn" class="btn btn-secondary">Add Row</button>
-                        <button type="submit" id="save-changes-btn" class="btn btn-primary">Save Changes</button>
+                    <div class="text-center mt-3">
+                        <button type="button" id="add-row-btn" class="btn btn-secondary btn-sm">Add Player</button>
+                        <button type="submit" id="save-changes-btn" class="btn btn-primary btn-sm">Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+    </div>
+</div>
 
-<!-- League Winners and Awards Section -->
-<div class="row justify-content-center mb-4">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header">
-                <h5>League Winners & Awards for Season {{ selected_season }}</h5>
-            </div>
-            <div class="card-body">
-                <form id="edit-awards-form" method="post" action="{% url 'save_season_awards' story.id %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="story_id" value="{{ story.id }}">
-                    <input type="hidden" name="season" value="{{ selected_season }}">
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>League Winners</h6>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">La Liga:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="la_liga_winner" value="{{ season_awards.la_liga_winner|default:'' }}">
+<!-- Replace the existing League Winners and Awards Section with this -->
+<div class="container mt-4 mb-4">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">League Winners & Awards for Season {{ selected_season }}</h5>
+                </div>
+                <div class="card-body">
+                    <form id="edit-awards-form" method="post" action="{% url 'save_season_awards' story.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="story_id" value="{{ story.id }}">
+                        <input type="hidden" name="season" value="{{ selected_season }}">
+                        
+                        <div class="row">
+                            <!-- League Winners Column -->
+                            <div class="col-md-4">
+                                <h6 class="border-bottom pb-2 mb-3">League Winners</h6>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">La Liga</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="la_liga_winner" value="{{ season_awards.la_liga_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Serie A</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="serie_a_winner" value="{{ season_awards.serie_a_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Bundesliga</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="bundesliga_winner" value="{{ season_awards.bundesliga_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Ligue 1</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="ligue_1_winner" value="{{ season_awards.ligue_1_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Premier League</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="premier_league_winner" value="{{ season_awards.premier_league_winner|default:'' }}">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Serie A:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="serie_a_winner" value="{{ season_awards.serie_a_winner|default:'' }}">
+                            
+                            <!-- Cup Winners Column -->
+                            <div class="col-md-4">
+                                <h6 class="border-bottom pb-2 mb-3">Cup Winners</h6>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Champions League</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="champions_league_winner" value="{{ season_awards.champions_league_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Europa League</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="europa_league_winner" value="{{ season_awards.europa_league_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Conference League</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="conference_league_winner" value="{{ season_awards.conference_league_winner|default:'' }}">
+                                    </div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Super Cup</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="super_cup_winner" value="{{ season_awards.super_cup_winner|default:'' }}">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Bundesliga:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="bundesliga_winner" value="{{ season_awards.bundesliga_winner|default:'' }}">
+                            
+                            <!-- Individual Awards Column -->
+                            <div class="col-md-4">
+                                <h6 class="border-bottom pb-2 mb-3">Individual Awards</h6>
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Ballon d'Or</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="balon_dor_winner" value="{{ season_awards.balon_dor_winner|default:'' }}">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Ligue 1:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="ligue_1_winner" value="{{ season_awards.ligue_1_winner|default:'' }}">
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Premier League:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="premier_league_winner" value="{{ season_awards.premier_league_winner|default:'' }}">
+                                <div class="form-group row">
+                                    <label class="col-5 col-form-label">Golden Boy</label>
+                                    <div class="col-7">
+                                        <input type="text" class="form-control form-control-sm" name="golden_boy_winner" value="{{ season_awards.golden_boy_winner|default:'' }}">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
-                            <h6>Individual Awards</h6>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Ballon d'Or:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="balon_dor_winner" value="{{ season_awards.balon_dor_winner|default:'' }}">
-                                </div>
-                            </div>
-                            <div class="form-group row">
-                                <label class="col-sm-4 col-form-label">Golden Boy:</label>
-                                <div class="col-sm-8">
-                                    <input type="text" class="form-control" name="golden_boy_winner" value="{{ season_awards.golden_boy_winner|default:'' }}">
-                                </div>
-                            </div>
+                        <div class="text-center mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm">Save Awards</button>
                         </div>
-                    </div>
-                    
-                    <div class="text-center mt-3">
-                        <button type="submit" class="btn btn-primary">Save Awards</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -318,15 +364,74 @@
             });
         });
 
-        // When season changes, load stats for that season
-        // Update this code in your season_stats.html JavaScript section
-        document.getElementById('seasonSelect').addEventListener('change', function() {
-            const season = this.value;
-            // Update existing code to load season stats
-            loadSeasonStats(season);
+        $('#seasonSelect').on('change', function() {
+            const season = $(this).val();
             
-            // Redirect to update the awards form as well
-            window.location.href = window.location.pathname + '?season=' + season;
+            // Update URL without page reload using History API
+            const newUrl = window.location.pathname + '?season=' + season;
+            window.history.pushState({ season: season }, '', newUrl);
+            
+            // Show loading indicator
+            $('#stats-table-body').html('<tr><td colspan="8" class="text-center">Loading data...</td></tr>');
+            
+            // Load all data for the new season via AJAX
+            $.ajax({
+                url: window.location.pathname,
+                data: { season: season },
+                dataType: 'html',  // Changed to HTML since the response is likely a full page
+                success: function(response) {
+                    // Parse the HTML response
+                    const htmlResponse = $(response);
+                    
+                    // Update card header title
+                    $('.card-header h5').text('Season Stats for Season ' + season);
+                    
+                    // Extract player stats rows from the response
+                    const newRows = htmlResponse.find('#stats-table-body tr');
+                    
+                    if (newRows.length > 0) {
+                        // Replace the table body with the new rows
+                        $('#stats-table-body').empty().append(newRows);
+                    } else {
+                        // If no rows found, check if any existing rows match the season
+                        const existingRows = $('#stats-table-body tr').filter(function() {
+                            return $(this).data('season') === season;
+                        });
+                        
+                        if (existingRows.length > 0) {
+                            // Show existing rows for this season
+                            $('#stats-table-body tr').hide();
+                            existingRows.show();
+                        } else {
+                            // No rows for this season
+                            $('#stats-table-body').html('<tr><td colspan="8" class="text-center">No player stats for this season yet. Add players below.</td></tr>');
+                        }
+                    }
+                    
+                    // Extract and update awards data
+                    const formInputs = htmlResponse.find('#edit-awards-form input[type="text"]');
+                    if (formInputs.length > 0) {
+                        formInputs.each(function() {
+                            const name = $(this).attr('name');
+                            const value = $(this).val();
+                            $(`input[name="${name}"]`).val(value);
+                        });
+                    } else {
+                        // Clear award fields if no data found
+                        $('#edit-awards-form input[type="text"]').val('');
+                    }
+                    
+                    // Update awards header
+                    $('.card-header:contains("League Winners")').find('h5').text('League Winners & Awards for Season ' + season);
+                    
+                    // Update the form's season field
+                    $('input[name="season"]').val(season);
+                },
+                error: function() {
+                    // Handle error case
+                    $('#stats-table-body').html('<tr><td colspan="8" class="text-center text-danger">Error loading data. Please try again.</td></tr>');
+                }
+            });
         });
 
         function loadSeasonStats(season) {
@@ -348,6 +453,42 @@
             // Load initial season stats
             const initialSeason = $('#seasonSelect').val();
             loadSeasonStats(initialSeason);
+        });
+
+        // Replace the existing success handler in the awards form AJAX request
+        $('#edit-awards-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: new FormData(this),
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        // Show success message without redirecting
+                        const alertDiv = $('<div>')
+                            .addClass('alert alert-success alert-dismissible fade show')
+                            .attr('role', 'alert')
+                            .text('Awards saved successfully!')
+                            .append('<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>');
+                        
+                        // Insert alert before the form
+                        $('.card-header').after(alertDiv);
+                        
+                        // Auto dismiss after 3 seconds
+                        setTimeout(function() {
+                            alertDiv.alert('close');
+                        }, 3000);
+                    } else {
+                        alert('Error saving awards: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error saving awards. Please try again.');
+                }
+            });
         });
     });
 </script>
