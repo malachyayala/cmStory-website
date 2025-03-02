@@ -37,10 +37,12 @@
         <div class="row mb-3">
             <div class="col">
                 <select class="form-control" id="seasonSelect">
-                    <!-- Default seasons -->
-                    <option value="23/24">2023/24</option>
-                    <option value="24/25">2024/25</option>
-                    <option value="25/26">2025/26</option>
+                    {% for season in seasons %}
+                        <option value="{{ season.season }}">{{ season.season }}</option>
+                    {% empty %}
+                        <!-- Default season if no seasons exist -->
+                        <option value="23/24">2023/2024</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="col">
@@ -62,32 +64,32 @@
                         <thead>
                             <tr>
                                 <th>Player Name</th>
-                                <th>Season</th>
                                 <th>Appearances</th>
                                 <th>Goals</th>
                                 <th>Assists</th>
                                 <th>Clean Sheets</th>
-                                <th>Average Rating</th>  <!-- Updated text -->
+                                <th>RC</th>
+                                <th>YC</th>
+                                <th>Average Rating</th>
                             </tr>
                         </thead>
                         <tbody id="stats-table-body">
                             {% for stat in season_stats %}
-                            <tr data-stat-id="{{ stat.id }}">
+                            <tr data-stat-id="{{ stat.id }}" data-season="{{ stat.season }}">
                                 <td contenteditable="true" data-field="player_name" data-stat-id="{{ stat.id }}">{{ stat.player_name }}</td>
-                                <td contenteditable="true" data-field="season" data-stat-id="{{ stat.id }}">{{ stat.season }}</td>
                                 <td contenteditable="true" data-field="appearances" data-stat-id="{{ stat.id }}">{{ stat.appearances }}</td>
                                 <td contenteditable="true" data-field="goals" data-stat-id="{{ stat.id }}">{{ stat.goals }}</td>
                                 <td contenteditable="true" data-field="assists" data-stat-id="{{ stat.id }}">{{ stat.assists }}</td>
                                 <td contenteditable="true" data-field="clean_sheets" data-stat-id="{{ stat.id }}">{{ stat.clean_sheets }}</td>
-                                <td contenteditable="true" data-field="season_avg" data-stat-id="{{ stat.id }}">{{ stat.season_avg }}</td>
+                                <td contenteditable="true" data-field="red_cards" data-stat-id="{{ stat.id }}">{{ stat.red_cards }}</td>
+                                <td contenteditable="true" data-field="yellow_cards" data-stat-id="{{ stat.id }}">{{ stat.yellow_cards }}</td>
+                                <td contenteditable="true" data-field="average_rating" data-stat-id="{{ stat.id }}">{{ stat.average_rating }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     <div class="button-group mt-3">
                         <button type="button" id="add-row-btn" class="btn btn-secondary">Add Row</button>
-                        <button type="button" id="upload-pdf-btn" class="btn btn-secondary">Upload PDF</button>
-                        <input type="file" id="pdf-input" accept="application/pdf" style="display: none;">
                         <button type="submit" id="save-changes-btn" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
@@ -108,22 +110,24 @@
         $('#edit-stats-form').on('submit', function(e) {
             e.preventDefault();
             
-            // Get the story ID from the hidden input
             const storyId = $('input[name="story_id"]').val();
-            
-            // Create an array to store all the stats
             let allStats = [];
             
-            // Collect data from contenteditable cells
+            // Group stats by player name and season
             $('[contenteditable="true"]').each(function() {
                 const statId = $(this).data('stat-id');
                 const fieldName = $(this).data('field');
                 const value = $(this).text().trim();
+                const row = $(this).closest('tr');
+                const season = row.data('season');
                 
                 // Find or create object for this stat
                 let statObj = allStats.find(s => s.id === statId);
                 if (!statObj) {
-                    statObj = { id: statId };
+                    statObj = { 
+                        id: statId,
+                        season: season
+                    };
                     allStats.push(statObj);
                 }
                 
@@ -134,7 +138,8 @@
             // Create the data object to send
             const data = {
                 stats: allStats,
-                season: $('#seasonSelect').val()
+                season: $('#seasonSelect').val(),
+                story_id: storyId
             };
 
             // Send the AJAX request
@@ -149,6 +154,8 @@
                 success: function(response) {
                     if (response.success) {
                         alert('Stats saved successfully!');
+                        // Optionally reload the page or update the UI
+                        location.reload();
                     } else {
                         alert('Error saving stats: ' + (response.error || 'Unknown error'));
                     }
@@ -166,89 +173,68 @@
             });
         });
 
-        // Handle the Add Row button click
+        // Update the Add Row button click handler
         $('#add-row-btn').on('click', function() {
             const selectedSeason = $('#seasonSelect').val();
             const newRow = `
-                <tr data-stat-id="${newRowId}">
+                <tr data-stat-id="${newRowId}" data-season="${selectedSeason}">
                     <td contenteditable="true" data-field="player_name" data-stat-id="${newRowId}"></td>
-                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${selectedSeason}</td>
                     <td contenteditable="true" data-field="appearances" data-stat-id="${newRowId}">0</td>
                     <td contenteditable="true" data-field="goals" data-stat-id="${newRowId}">0</td>
                     <td contenteditable="true" data-field="assists" data-stat-id="${newRowId}">0</td>
                     <td contenteditable="true" data-field="clean_sheets" data-stat-id="${newRowId}">0</td>
-                    <td contenteditable="true" data-field="season_avg" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="red_cards" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="yellow_cards" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="average_rating" data-stat-id="${newRowId}">0</td>
                 </tr>
             `;
             $('#stats-table-body').append(newRow);
             newRowId--; // Decrement newRowId for the next new row
         });
 
-        $('#upload-pdf-btn').on('click', function() {
-            $('#pdf-input').click();
-        });
-
-        $('#pdf-input').on('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const formData = new FormData();
-                formData.append('pdf', file);
-
-                $.ajax({
-                    url: '/extract-data-from-pdf/',
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    success: function(data) {
-                        if (data.success) {
-                            const newRowId = data.newRowId;
-                            const newRow = `
-                                <tr data-stat-id="${newRowId}">
-                                    <td contenteditable="true" data-field="player_name" data-stat-id="${newRowId}">${data.player_name}</td>
-                                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${data.season}</td>
-                                    <td contenteditable="true" data-field="appearances" data-stat-id="${newRowId}">${data.appearances}</td>
-                                    <td contenteditable="true" data-field="goals" data-stat-id="${newRowId}">${data.goals}</td>
-                                    <td contenteditable="true" data-field="assists" data-stat-id="${newRowId}">${data.assists}</td>
-                                    <td contenteditable="true" data-field="clean_sheets" data-stat-id="${newRowId}">${data.clean_sheets}</td>
-                                    <td contenteditable="true" data-field="season_avg" data-stat-id="${newRowId}">${data.season_avg}</td>
-                                </tr>
-                            `;
-                            $('#stats-table-body').append(newRow);
-                        } else {
-                            alert('Failed to extract data from PDF.');
-                        }
-                    },
-                    error: function() {
-                        alert('Error uploading PDF.');
-                    }
-                });
-            }
-        });
-
         document.getElementById('addSeasonBtn').addEventListener('click', function() {
-            // Get the current highest season
             const seasonSelect = document.getElementById('seasonSelect');
             const seasons = Array.from(seasonSelect.options).map(opt => opt.value);
             const lastSeason = seasons[seasons.length - 1];
             
-            // Parse the last season to create next season
             const [start, end] = lastSeason.split('/');
             const newStart = parseInt(start) + 1;
             const newEnd = parseInt(end) + 1;
             const newSeason = `${newStart}/${newEnd}`;
             
-            // Add new season to dropdown
-            const option = document.createElement('option');
-            option.value = newSeason;
-            option.text = `20${newStart}/20${newEnd}`;
-            seasonSelect.add(option);
-            
-            // Select the new season
-            seasonSelect.value = newSeason;
+            // Send AJAX request to save new season
+            $.ajax({
+                url: '{% url "add_season" story.id %}',
+                type: 'POST',
+                data: JSON.stringify({
+                    season: newSeason,
+                    story_id: '{{ story.id }}'
+                }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Add new season to dropdown
+                        const option = document.createElement('option');
+                        option.value = newSeason;
+                        option.text = newSeason;  // Just use the season value directly
+                        seasonSelect.add(option);
+                        
+                        // Select the new season
+                        seasonSelect.value = newSeason;
+                        
+                        // Trigger season change event to update view
+                        seasonSelect.dispatchEvent(new Event('change'));
+                    } else {
+                        alert('Error adding season: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr) {
+                    alert('Error adding season. Please try again.');
+                }
+            });
         });
 
         // When season changes, load stats for that season
@@ -260,7 +246,7 @@
         function loadSeasonStats(season) {
             // Filter visible rows based on season
             $('#stats-table-body tr').each(function() {
-                const rowSeason = $(this).find('[data-field="season"]').text().trim();
+                const rowSeason = $(this).data('season');
                 if (rowSeason === season) {
                     $(this).show();
                 } else {

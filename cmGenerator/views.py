@@ -11,7 +11,7 @@ from django.contrib.auth import logout
 from django.shortcuts import get_object_or_404
 from django.http import HttpRequest
 import os
-from .models import Story, SeasonPlayerStats
+from .models import Season, Story, SeasonPlayerStats
 from .utils.story_generator import generate_all
 from django.core.exceptions import ObjectDoesNotExist
 from openai import OpenAI
@@ -90,50 +90,50 @@ def save_season_stats(request, story_id):
         try:
             data = json.loads(request.body)
             stats = data.get('stats', [])
+            story = get_object_or_404(Story, id=story_id, user=request.user)
             
             for stat in stats:
-                # Create a defaults dict with proper type conversion
-                defaults = {
-                    'player_name': str(stat.get('player_name', '')),
-                    'season': str(stat.get('season', '')),
+                stat_id = stat.get('id')
+                player_name = stat.get('player_name')
+                season = stat.get('season')
+
+                # Skip if player name is empty
+                if not player_name:
+                    continue
+
+                # Prepare the stat data
+                stat_data = {
+                    'player_name': player_name,
+                    'season': season,
                     'appearances': int(stat.get('appearances', 0)),
                     'goals': int(stat.get('goals', 0)),
                     'assists': int(stat.get('assists', 0)),
-                    'clean_sheets': int(stat.get('clean_sheets', 0))
+                    'clean_sheets': int(stat.get('clean_sheets', 0)),
+                    'red_cards': int(stat.get('red_cards', 0)),
+                    'yellow_cards': int(stat.get('yellow_cards', 0)),
+                    'average_rating': float(stat.get('average_rating', 0))
                 }
-                
-                # Handle average_rating/season_avg separately with error checking
-                try:
-                    avg = float(stat.get('season_avg', 0))
-                    defaults['average_rating'] = avg
-                except (ValueError, TypeError):
-                    defaults['average_rating'] = 0.0
 
-                # Handle negative IDs (new rows) by creating new records
-                stat_id = stat.get('id')
                 if stat_id and int(stat_id) > 0:
-                    # Update existing record
+                    # Update existing stat
                     SeasonPlayerStats.objects.filter(
                         id=stat_id, 
-                        story_id=story_id
-                    ).update(**defaults)
+                        story=story
+                    ).update(**stat_data)
                 else:
-                    # Create new record
-                    defaults['story_id'] = story_id
-                    SeasonPlayerStats.objects.create(**defaults)
-            
+                    # Create new stat using update_or_create to handle duplicates
+                    SeasonPlayerStats.objects.update_or_create(
+                        story=story,
+                        season=season,
+                        player_name=player_name,
+                        defaults=stat_data
+                    )
+
             return JsonResponse({'success': True})
         except Exception as e:
-            print(f"Error saving stats: {str(e)}")  # For debugging
-            return JsonResponse({
-                'success': False, 
-                'error': str(e)
-            }, status=400)
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
-    return JsonResponse({
-        'success': False, 
-        'message': 'Invalid request method'
-    }, status=405)
+    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
 @login_required
 def season_stats(request, story_id):
@@ -332,3 +332,41 @@ def extract_data_from_pdf(request):
             }, status=500)
 
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+@login_required
+def add_season(request, story_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            story = get_object_or_404(Story, id=story_id, user=request.user)
+            season = data.get('season')
+            
+            # You might want to add the season to a Seasons model if you have one
+            # For now, we'll just return success since seasons are stored client-side
+            
+            return JsonResponse({
+                'success': True,
+                'season': season
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Invalid request method'
+    }, status=405)
+
+@login_required
+def season_stats_view(request, story_id):
+    story = get_object_or_404(Story, id=story_id, user=request.user)
+    seasons = Season.objects.filter(story=story).order_by('season')
+    season_stats = SeasonPlayerStats.objects.filter(story=story)
+    
+    return render(request, 'cmGenerator/season_stats.html', {
+        'story': story,
+        'season_stats': season_stats,
+        'seasons': seasons  # Add this line
+    })

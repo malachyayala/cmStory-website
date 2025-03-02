@@ -12,6 +12,18 @@ class Story(models.Model):
     def __str__(self):
         return f"{self.club} - {self.user.username}"
 
+class Season(models.Model):
+    story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='seasons')
+    season = models.CharField(max_length=10)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['story', 'season']
+        ordering = ['season']
+
+    def __str__(self):
+        return f"{self.story.club} - {self.season}"
+
 class SeasonPlayerStats(models.Model):
     story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='season_stats')
     player_name = models.CharField(max_length=100)
@@ -20,6 +32,8 @@ class SeasonPlayerStats(models.Model):
     goals = models.IntegerField(default=0)
     assists = models.IntegerField(default=0)
     clean_sheets = models.IntegerField(default=0)
+    red_cards = models.IntegerField(default=0)    # New field
+    yellow_cards = models.IntegerField(default=0)  # New field
     average_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
     
     class Meta:
