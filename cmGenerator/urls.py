@@ -13,7 +13,7 @@ urlpatterns = [
     path('save-story/', views.save_story, name='save_story'),
     path('add-season-stats/', views.save_season_stats, name='add_season_stats'),
     path('season-stats/<int:story_id>/', views.season_stats, name='season_stats'),
-    path('save-season-stats/', views.save_season_stats, name='save_season_stats'),  # Add this line
+    path('save-season-stats/<int:story_id>/', views.save_season_stats, name='save_season_stats'),
     path('extract-data-from-image/', views.extract_data_from_pdf, name='extract_data_from_image'),
-
+    path('story/<int:story_id>/stats/save/', views.save_season_stats, name='save_season_stats'),
 ]

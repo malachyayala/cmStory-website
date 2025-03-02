@@ -32,7 +32,6 @@ def index(request: HttpRequest) -> HttpResponse:
     """
     return render(request, 'cmGenerator/index.html')
 
-@login_required
 def generate_story(request: HttpRequest) -> JsonResponse:
     """
     Generates a new story but does NOT save it.
@@ -86,68 +85,55 @@ def save_story(request: HttpRequest) -> JsonResponse:
     return JsonResponse({"error": "Failed to save story"}, status=400)
 
 @login_required
-def save_season_stats(request: HttpRequest) -> JsonResponse:
-    """
-    Adds or updates season stats for a story.
-    
-    Args:
-        request (HttpRequest): The request object.
-    
-    Returns:
-        JsonResponse: A JSON response indicating success or failure.
-    """
-    if request.method == "POST":
-        story_id = request.POST.get("story_id")
-        
+def save_season_stats(request, story_id):
+    if request.method == 'POST':
         try:
-            # Get the story and verify ownership
-            story = get_object_or_404(Story, id=story_id, user=request.user)
+            data = json.loads(request.body)
+            stats = data.get('stats', [])
             
-            # Process all stats from the edit form
-            i = 0
-            while f'stats[{i}][id]' in request.POST:
-                stat_id = request.POST.get(f'stats[{i}][id]')
-                player_name = request.POST.get(f'stats[{i}][player_name]')
-                season = request.POST.get(f'stats[{i}][season]')
-                appearances = request.POST.get(f'stats[{i}][appearances]')
-                goals = request.POST.get(f'stats[{i}][goals]')
-                assists = request.POST.get(f'stats[{i}][assists]')
-                clean_sheets = request.POST.get(f'stats[{i}][clean_sheets]')
-                season_avg = request.POST.get(f'stats[{i}][season_avg]')
+            for stat in stats:
+                # Create a defaults dict with proper type conversion
+                defaults = {
+                    'player_name': str(stat.get('player_name', '')),
+                    'season': str(stat.get('season', '')),
+                    'appearances': int(stat.get('appearances', 0)),
+                    'goals': int(stat.get('goals', 0)),
+                    'assists': int(stat.get('assists', 0)),
+                    'clean_sheets': int(stat.get('clean_sheets', 0))
+                }
                 
-                if int(stat_id) < 0:
-                    # Create a new stat
-                    SeasonPlayerStats.objects.create(
-                        story=story,
-                        player_name=player_name,
-                        season=season,
-                        appearances=appearances,
-                        goals=goals,
-                        assists=assists,
-                        clean_sheets=clean_sheets,
-                        season_avg=season_avg
-                    )
-                else:
-                    # Update the existing stat
-                    stat = get_object_or_404(SeasonPlayerStats, id=stat_id, story=story)
-                    stat.player_name = player_name
-                    stat.season = season
-                    stat.appearances = appearances
-                    stat.goals = goals
-                    stat.assists = assists
-                    stat.clean_sheets = clean_sheets
-                    stat.season_avg = season_avg
-                    stat.save()
-                
-                i += 1
-            
-            # Redirect back to the season stats page
-            return redirect('season_stats', story_id=story.id)
-        
-        except Exception as e:
-            return JsonResponse({"error": f"Error updating stats: {str(e)}"}, status=400)
+                # Handle average_rating/season_avg separately with error checking
+                try:
+                    avg = float(stat.get('season_avg', 0))
+                    defaults['average_rating'] = avg
+                except (ValueError, TypeError):
+                    defaults['average_rating'] = 0.0
 
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+                # Handle negative IDs (new rows) by creating new records
+                stat_id = stat.get('id')
+                if stat_id and int(stat_id) > 0:
+                    # Update existing record
+                    SeasonPlayerStats.objects.filter(
+                        id=stat_id, 
+                        story_id=story_id
+                    ).update(**defaults)
+                else:
+                    # Create new record
+                    defaults['story_id'] = story_id
+                    SeasonPlayerStats.objects.create(**defaults)
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            print(f"Error saving stats: {str(e)}")  # For debugging
+            return JsonResponse({
+                'success': False, 
+                'error': str(e)
+            }, status=400)
+    
+    return JsonResponse({
+        'success': False, 
+        'message': 'Invalid request method'
+    }, status=405)
 
 @login_required
 def season_stats(request, story_id):

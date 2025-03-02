@@ -72,7 +72,13 @@
     
                 <div class="button-container">
                     <button onclick="generateStory()" id="generateBtn" class="btn btn-primary btn-lg mb-3">Generate New Story</button>
-                    <button onclick="saveStory()" id="saveStoryBtn" class="btn btn-success btn-lg mb-3">Save Story</button>
+                    {% if user.is_authenticated %}
+                        <button onclick="saveStory()" id="saveStoryBtn" class="btn btn-success btn-lg mb-3">Save Story</button>
+                    {% else %}
+                        <button class="btn btn-success btn-lg mb-3" onclick="window.location.href='{% url 'login' %}'">
+                            Login to Save Stories
+                        </button>
+                    {% endif %}
                 </div>
                 <div class="text-center">
                     <img src="https://i.gifer.com/ZZ5H.gif" class="loader" id="loader" alt="Loading...">
@@ -86,11 +92,13 @@
         function generateStory() {
             const btn = document.getElementById('generateBtn');
             const loader = document.getElementById('loader');
-            const saveBtn = document.getElementById('saveStoryBtn');
+            const saveBtn = {% if user.is_authenticated %}document.getElementById('saveStoryBtn'){% else %}null{% endif %};
     
             btn.disabled = true;
             loader.style.display = 'inline-block';
-            saveBtn.style.display = 'none';  // Hide "Save Story" button initially
+            if (saveBtn) {
+                saveBtn.style.display = 'none';  // Hide "Save Story" button initially
+            }
     
             fetch('/generate/', {
                 method: 'POST',
@@ -110,13 +118,14 @@
                     document.getElementById('challengeCard').innerHTML = `<h3>Challenge: ${data.challenge}</h3>`;
                     document.getElementById('backgroundCard').innerHTML = `${data.background}`;
     
-                    // Store data attributes for saving later
-                    saveBtn.setAttribute("data-club", data.club);
-                    saveBtn.setAttribute("data-formation", data.formation);
-                    saveBtn.setAttribute("data-challenge", data.challenge);
-                    saveBtn.setAttribute("data-background", data.background);
-                    
-                    saveBtn.style.display = 'block';  // Show "Save Story" button
+                    // Store data attributes for saving later if user is authenticated
+                    if (saveBtn) {
+                        saveBtn.setAttribute("data-club", data.club);
+                        saveBtn.setAttribute("data-formation", data.formation);
+                        saveBtn.setAttribute("data-challenge", data.challenge);
+                        saveBtn.setAttribute("data-background", data.background);
+                        saveBtn.style.display = 'block';  // Show "Save Story" button
+                    }
                 }
                 btn.disabled = false;
                 loader.style.display = 'none';

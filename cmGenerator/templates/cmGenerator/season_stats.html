@@ -32,46 +32,66 @@
 
     <h1 class="my-4 text-center">Season Stats for {{ story.club }}</h1>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <h3>Season Stats:</h3>
-            <form id="edit-stats-form" method="post" action="{% url 'save_season_stats' %}">
-                {% csrf_token %}
-                <input type="hidden" name="story_id" value="{{ story.id }}">
-                <!-- Hidden fields to store contenteditable values -->
-                <div id="hidden-inputs-container"></div>
-                
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Player Name</th>
-                            <th>Season</th>
-                            <th>Appearances</th>
-                            <th>Goals</th>
-                            <th>Assists</th>
-                            <th>Clean Sheets</th>
-                            <th>Season Avg</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stats-table-body">
-                        {% for stat in season_stats %}
-                        <tr data-stat-id="{{ stat.id }}">
-                            <td contenteditable="true" data-field="player_name" data-stat-id="{{ stat.id }}">{{ stat.player_name }}</td>
-                            <td contenteditable="true" data-field="season" data-stat-id="{{ stat.id }}">{{ stat.season }}</td>
-                            <td contenteditable="true" data-field="appearances" data-stat-id="{{ stat.id }}">{{ stat.appearances }}</td>
-                            <td contenteditable="true" data-field="goals" data-stat-id="{{ stat.id }}">{{ stat.goals }}</td>
-                            <td contenteditable="true" data-field="assists" data-stat-id="{{ stat.id }}">{{ stat.assists }}</td>
-                            <td contenteditable="true" data-field="clean_sheets" data-stat-id="{{ stat.id }}">{{ stat.clean_sheets }}</td>
-                            <td contenteditable="true" data-field="season_avg" data-stat-id="{{ stat.id }}">{{ stat.season_avg }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button type="button" id="add-row-btn" class="btn btn-secondary">Add Row</button>
-                <button type="button" id="upload-pdf-btn" class="btn btn-secondary">Upload PDF</button>
-                <input type="file" id="pdf-input" accept="application/pdf" style="display: none;">
-                <button type="submit" id="save-changes-btn" class="btn btn-primary">Save Changes</button>
-            </form>
+    <div class="container">
+        <!-- Season selector -->
+        <div class="row mb-3">
+            <div class="col">
+                <select class="form-control" id="seasonSelect">
+                    <!-- Default seasons -->
+                    <option value="23/24">2023/24</option>
+                    <option value="24/25">2024/25</option>
+                    <option value="25/26">2025/26</option>
+                </select>
+            </div>
+            <div class="col">
+                <button class="btn btn-success" id="addSeasonBtn">
+                    <i class="fas fa-plus"></i> Add New Season
+                </button>
+            </div>
+        </div>
+
+        <!-- Single Stats Table -->
+        <div class="row justify-content-center">
+            <div class="col-lg-12">
+                <form id="edit-stats-form" method="post" action="{% url 'save_season_stats' story.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="story_id" value="{{ story.id }}">
+                    <div id="hidden-inputs-container"></div>
+                    
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Player Name</th>
+                                <th>Season</th>
+                                <th>Appearances</th>
+                                <th>Goals</th>
+                                <th>Assists</th>
+                                <th>Clean Sheets</th>
+                                <th>Average Rating</th>  <!-- Updated text -->
+                            </tr>
+                        </thead>
+                        <tbody id="stats-table-body">
+                            {% for stat in season_stats %}
+                            <tr data-stat-id="{{ stat.id }}">
+                                <td contenteditable="true" data-field="player_name" data-stat-id="{{ stat.id }}">{{ stat.player_name }}</td>
+                                <td contenteditable="true" data-field="season" data-stat-id="{{ stat.id }}">{{ stat.season }}</td>
+                                <td contenteditable="true" data-field="appearances" data-stat-id="{{ stat.id }}">{{ stat.appearances }}</td>
+                                <td contenteditable="true" data-field="goals" data-stat-id="{{ stat.id }}">{{ stat.goals }}</td>
+                                <td contenteditable="true" data-field="assists" data-stat-id="{{ stat.id }}">{{ stat.assists }}</td>
+                                <td contenteditable="true" data-field="clean_sheets" data-stat-id="{{ stat.id }}">{{ stat.clean_sheets }}</td>
+                                <td contenteditable="true" data-field="season_avg" data-stat-id="{{ stat.id }}">{{ stat.season_avg }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="button-group mt-3">
+                        <button type="button" id="add-row-btn" class="btn btn-secondary">Add Row</button>
+                        <button type="button" id="upload-pdf-btn" class="btn btn-secondary">Upload PDF</button>
+                        <input type="file" id="pdf-input" accept="application/pdf" style="display: none;">
+                        <button type="submit" id="save-changes-btn" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -88,8 +108,8 @@
         $('#edit-stats-form').on('submit', function(e) {
             e.preventDefault();
             
-            // Clear previous hidden inputs
-            $('#hidden-inputs-container').empty();
+            // Get the story ID from the hidden input
+            const storyId = $('input[name="story_id"]').val();
             
             // Create an array to store all the stats
             let allStats = [];
@@ -110,39 +130,49 @@
                 // Add this field to the stat object
                 statObj[fieldName] = value;
             });
-            
-            // Create hidden inputs for all stats
-            allStats.forEach((stat, index) => {
-                // Add stat_id
-                $('<input>').attr({
-                    type: 'hidden',
-                    name: `stats[${index}][id]`,
-                    value: stat.id
-                }).appendTo('#hidden-inputs-container');
-                
-                // Add all fields
-                for (const [field, value] of Object.entries(stat)) {
-                    if (field !== 'id') {
-                        $('<input>').attr({
-                            type: 'hidden',
-                            name: `stats[${index}][${field}]`,
-                            value: value
-                        }).appendTo('#hidden-inputs-container');
+
+            // Create the data object to send
+            const data = {
+                stats: allStats,
+                season: $('#seasonSelect').val()
+            };
+
+            // Send the AJAX request
+            $.ajax({
+                url: $(this).attr('action'),
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Stats saved successfully!');
+                    } else {
+                        alert('Error saving stats: ' + (response.error || 'Unknown error'));
                     }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Error saving stats.';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMessage += ' ' + (response.error || response.message || '');
+                    } catch (e) {
+                        // Keep default error message if response can't be parsed
+                    }
+                    alert(errorMessage);
                 }
             });
-            
-            // Now submit the form with all the hidden fields
-            this.submit();
         });
 
         // Handle the Add Row button click
         $('#add-row-btn').on('click', function() {
-            const currentYear = new Date().getFullYear();
+            const selectedSeason = $('#seasonSelect').val();
             const newRow = `
                 <tr data-stat-id="${newRowId}">
                     <td contenteditable="true" data-field="player_name" data-stat-id="${newRowId}"></td>
-                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${currentYear}</td>
+                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${selectedSeason}</td>
                     <td contenteditable="true" data-field="appearances" data-stat-id="${newRowId}">0</td>
                     <td contenteditable="true" data-field="goals" data-stat-id="${newRowId}">0</td>
                     <td contenteditable="true" data-field="assists" data-stat-id="${newRowId}">0</td>
@@ -197,6 +227,55 @@
                     }
                 });
             }
+        });
+
+        document.getElementById('addSeasonBtn').addEventListener('click', function() {
+            // Get the current highest season
+            const seasonSelect = document.getElementById('seasonSelect');
+            const seasons = Array.from(seasonSelect.options).map(opt => opt.value);
+            const lastSeason = seasons[seasons.length - 1];
+            
+            // Parse the last season to create next season
+            const [start, end] = lastSeason.split('/');
+            const newStart = parseInt(start) + 1;
+            const newEnd = parseInt(end) + 1;
+            const newSeason = `${newStart}/${newEnd}`;
+            
+            // Add new season to dropdown
+            const option = document.createElement('option');
+            option.value = newSeason;
+            option.text = `20${newStart}/20${newEnd}`;
+            seasonSelect.add(option);
+            
+            // Select the new season
+            seasonSelect.value = newSeason;
+        });
+
+        // When season changes, load stats for that season
+        document.getElementById('seasonSelect').addEventListener('change', function() {
+            const season = this.value;
+            loadSeasonStats(season);
+        });
+
+        function loadSeasonStats(season) {
+            // Filter visible rows based on season
+            $('#stats-table-body tr').each(function() {
+                const rowSeason = $(this).find('[data-field="season"]').text().trim();
+                if (rowSeason === season) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+
+        // Add this after document ready to show initial season's stats
+        $(document).ready(function() {
+            // ...existing ready function code...
+            
+            // Load initial season stats
+            const initialSeason = $('#seasonSelect').val();
+            loadSeasonStats(initialSeason);
         });
     });
 </script>
