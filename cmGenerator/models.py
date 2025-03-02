@@ -41,3 +41,22 @@ class SeasonPlayerStats(models.Model):
 
     def __str__(self):
         return f"Season {self.season} - {self.story.club} - {self.player_name}"
+    
+class SeasonAwards(models.Model):
+    story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='season_awards')
+    season = models.CharField(max_length=10)
+    la_liga_winner = models.CharField(max_length=100, blank=True)
+    serie_a_winner = models.CharField(max_length=100, blank=True)
+    bundesliga_winner = models.CharField(max_length=100, blank=True)
+    ligue_1_winner = models.CharField(max_length=100, blank=True)
+    premier_league_winner = models.CharField(max_length=100, blank=True)
+    balon_dor_winner = models.CharField(max_length=100, blank=True)
+    golden_boy_winner = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        unique_together = ['story', 'season']
+        ordering = ['season']
+
+    def __str__(self):
+        return f"Awards for {self.story.club} - Season {self.season}"
+

@@ -11,7 +11,7 @@ from django.contrib.auth import logout
 from django.shortcuts import get_object_or_404
 from django.http import HttpRequest
 import os
-from .models import Season, Story, SeasonPlayerStats
+from .models import Season, Story, SeasonPlayerStats, SeasonAwards
 from .utils.story_generator import generate_all
 from django.core.exceptions import ObjectDoesNotExist
 from openai import OpenAI
@@ -148,16 +148,25 @@ def season_stats(request, story_id):
         )
         seasons = Season.objects.filter(story=story)
     
-    season_stats = SeasonPlayerStats.objects.filter(story=story)
-    
     # Get the selected season from query params
     selected_season = request.GET.get('season')
+    if not selected_season and seasons.exists():
+        selected_season = seasons.first().season
+    
+    season_stats = SeasonPlayerStats.objects.filter(story=story, season=selected_season)
+    
+    # Get or initialize season awards
+    try:
+        season_awards = SeasonAwards.objects.get(story=story, season=selected_season)
+    except SeasonAwards.DoesNotExist:
+        season_awards = SeasonAwards(story=story, season=selected_season)
     
     return render(request, 'cmGenerator/season_stats.html', {
         'story': story,
         'seasons': seasons,
         'season_stats': season_stats,
         'selected_season': selected_season,
+        'season_awards': season_awards,
     })
 
 def register(request: HttpRequest) -> HttpResponse:
@@ -293,3 +302,32 @@ def create_story(request):
     else:
         form = StoryForm()
     return render(request, 'cmGenerator/create_story.html', {'form': form})
+
+@login_required
+def save_season_awards(request, story_id):
+    if request.method == 'POST':
+        try:
+            story = get_object_or_404(Story, id=story_id, user=request.user)
+            season = request.POST.get('season')
+            
+            # Create or update season awards
+            SeasonAwards.objects.update_or_create(
+                story=story,
+                season=season,
+                defaults={
+                    'la_liga_winner': request.POST.get('la_liga_winner', ''),
+                    'serie_a_winner': request.POST.get('serie_a_winner', ''),
+                    'bundesliga_winner': request.POST.get('bundesliga_winner', ''),
+                    'ligue_1_winner': request.POST.get('ligue_1_winner', ''),
+                    'premier_league_winner': request.POST.get('premier_league_winner', ''),
+                    'balon_dor_winner': request.POST.get('balon_dor_winner', ''),
+                    'golden_boy_winner': request.POST.get('golden_boy_winner', ''),
+                }
+            )
+            
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    
+    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
+
