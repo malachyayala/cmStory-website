@@ -130,11 +130,17 @@
     
         function saveStory() {
             const saveBtn = document.getElementById('saveStoryBtn');
+            
+            // Disable the button immediately
+            saveBtn.disabled = true;
+            saveBtn.classList.add('btn-secondary');
+            saveBtn.classList.remove('btn-success');
+        
             const club = saveBtn.getAttribute("data-club");
             const formation = saveBtn.getAttribute("data-formation");
             const challenge = saveBtn.getAttribute("data-challenge");
             const background = saveBtn.getAttribute("data-background");
-    
+        
             fetch('/save-story/', {
                 method: 'POST',
                 headers: {
@@ -152,11 +158,22 @@
             .then(data => {
                 if (data.success) {
                     alert("Story saved successfully!");
+                    // Keep button disabled after successful save
                 } else {
                     alert("Failed to save story.");
+                    // Re-enable button if save failed
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('btn-secondary');
+                    saveBtn.classList.add('btn-success');
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                // Re-enable button if there's an error
+                saveBtn.disabled = false;
+                saveBtn.classList.remove('btn-secondary');
+                saveBtn.classList.add('btn-success');
+            });
         }
     </script>
     
