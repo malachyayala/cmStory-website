@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Season Stats for {{ story.club }}</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        [contenteditable="true"] {
+            border: 1px solid #ced4da;
+            padding: 5px;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        [contenteditable="true"]:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+    </style>
 </head>
 <body>
 <div class="container">
     <div class="text-right my-3">
         {% if user.is_authenticated %}
         <p>
+            <a href="{% url 'my_stories' %}" class="btn btn-outline-secondary btn-sm">Back to My Stories</a>
             <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
         </p>
         {% endif %}
@@ -21,9 +35,12 @@
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <h3>Season Stats:</h3>
-            <form method="post" action="{% url 'save_season_stats' %}">
+            <form id="edit-stats-form" method="post" action="{% url 'save_season_stats' %}">
                 {% csrf_token %}
                 <input type="hidden" name="story_id" value="{{ story.id }}">
+                <!-- Hidden fields to store contenteditable values -->
+                <div id="hidden-inputs-container"></div>
+                
                 <table class="table table-striped">
                     <thead>
                         <tr>
@@ -36,62 +53,152 @@
                             <th>Season Avg</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="stats-table-body">
                         {% for stat in season_stats %}
-                        <tr>
-                            <td contenteditable="true">{{ stat.player_name }}</td>
-                            <td contenteditable="true">{{ stat.season }}</td>
-                            <td contenteditable="true">{{ stat.appearances }}</td>
-                            <td contenteditable="true">{{ stat.goals }}</td>
-                            <td contenteditable="true">{{ stat.assists }}</td>
-                            <td contenteditable="true">{{ stat.clean_sheets }}</td>
-                            <td contenteditable="true">{{ stat.season_avg }}</td>
+                        <tr data-stat-id="{{ stat.id }}">
+                            <td contenteditable="true" data-field="player_name" data-stat-id="{{ stat.id }}">{{ stat.player_name }}</td>
+                            <td contenteditable="true" data-field="season" data-stat-id="{{ stat.id }}">{{ stat.season }}</td>
+                            <td contenteditable="true" data-field="appearances" data-stat-id="{{ stat.id }}">{{ stat.appearances }}</td>
+                            <td contenteditable="true" data-field="goals" data-stat-id="{{ stat.id }}">{{ stat.goals }}</td>
+                            <td contenteditable="true" data-field="assists" data-stat-id="{{ stat.id }}">{{ stat.assists }}</td>
+                            <td contenteditable="true" data-field="clean_sheets" data-stat-id="{{ stat.id }}">{{ stat.clean_sheets }}</td>
+                            <td contenteditable="true" data-field="season_avg" data-stat-id="{{ stat.id }}">{{ stat.season_avg }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-            </form>
-
-            <h3>Add Season Stats:</h3>
-            <form method="post">
-                {% csrf_token %}
-                <div class="form-group">
-                    <label for="player_name">Player Name:</label>
-                    <input type="text" class="form-control" name="player_name" required>
-                </div>
-                <div class="form-group">
-                    <label for="season">Season:</label>
-                    <input type="text" class="form-control" name="season" required>
-                </div>
-                <div class="form-group">
-                    <label for="appearances">Appearances:</label>
-                    <input type="number" class="form-control" name="appearances" required>
-                </div>
-                <div class="form-group">
-                    <label for="goals">Goals:</label>
-                    <input type="number" class="form-control" name="goals" required>
-                </div>
-                <div class="form-group">
-                    <label for="assists">Assists:</label>
-                    <input type="number" class="form-control" name="assists" required>
-                </div>
-                <div class="form-group">
-                    <label for="clean_sheets">Clean Sheets:</label>
-                    <input type="number" class="form-control" name="clean_sheets" required>
-                </div>
-                <div class="form-group">
-                    <label for="season_avg">Season Avg:</label>
-                    <input type="number" class="form-control" name="season_avg" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Add Stats</button>
+                <button type="button" id="add-row-btn" class="btn btn-secondary">Add Row</button>
+                <button type="button" id="upload-pdf-btn" class="btn btn-secondary">Upload PDF</button>
+                <input type="file" id="pdf-input" accept="application/pdf" style="display: none;">
+                <button type="submit" id="save-changes-btn" class="btn btn-primary">Save Changes</button>
             </form>
         </div>
     </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        let newRowId = -1; // Initialize new row ID as a negative number
+
+        // Handle the Save Changes form submission
+        $('#edit-stats-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Clear previous hidden inputs
+            $('#hidden-inputs-container').empty();
+            
+            // Create an array to store all the stats
+            let allStats = [];
+            
+            // Collect data from contenteditable cells
+            $('[contenteditable="true"]').each(function() {
+                const statId = $(this).data('stat-id');
+                const fieldName = $(this).data('field');
+                const value = $(this).text().trim();
+                
+                // Find or create object for this stat
+                let statObj = allStats.find(s => s.id === statId);
+                if (!statObj) {
+                    statObj = { id: statId };
+                    allStats.push(statObj);
+                }
+                
+                // Add this field to the stat object
+                statObj[fieldName] = value;
+            });
+            
+            // Create hidden inputs for all stats
+            allStats.forEach((stat, index) => {
+                // Add stat_id
+                $('<input>').attr({
+                    type: 'hidden',
+                    name: `stats[${index}][id]`,
+                    value: stat.id
+                }).appendTo('#hidden-inputs-container');
+                
+                // Add all fields
+                for (const [field, value] of Object.entries(stat)) {
+                    if (field !== 'id') {
+                        $('<input>').attr({
+                            type: 'hidden',
+                            name: `stats[${index}][${field}]`,
+                            value: value
+                        }).appendTo('#hidden-inputs-container');
+                    }
+                }
+            });
+            
+            // Now submit the form with all the hidden fields
+            this.submit();
+        });
+
+        // Handle the Add Row button click
+        $('#add-row-btn').on('click', function() {
+            const currentYear = new Date().getFullYear();
+            const newRow = `
+                <tr data-stat-id="${newRowId}">
+                    <td contenteditable="true" data-field="player_name" data-stat-id="${newRowId}"></td>
+                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${currentYear}</td>
+                    <td contenteditable="true" data-field="appearances" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="goals" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="assists" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="clean_sheets" data-stat-id="${newRowId}">0</td>
+                    <td contenteditable="true" data-field="season_avg" data-stat-id="${newRowId}">0</td>
+                </tr>
+            `;
+            $('#stats-table-body').append(newRow);
+            newRowId--; // Decrement newRowId for the next new row
+        });
+
+        $('#upload-pdf-btn').on('click', function() {
+            $('#pdf-input').click();
+        });
+
+        $('#pdf-input').on('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('pdf', file);
+
+                $.ajax({
+                    url: '/extract-data-from-pdf/',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            const newRowId = data.newRowId;
+                            const newRow = `
+                                <tr data-stat-id="${newRowId}">
+                                    <td contenteditable="true" data-field="player_name" data-stat-id="${newRowId}">${data.player_name}</td>
+                                    <td contenteditable="true" data-field="season" data-stat-id="${newRowId}">${data.season}</td>
+                                    <td contenteditable="true" data-field="appearances" data-stat-id="${newRowId}">${data.appearances}</td>
+                                    <td contenteditable="true" data-field="goals" data-stat-id="${newRowId}">${data.goals}</td>
+                                    <td contenteditable="true" data-field="assists" data-stat-id="${newRowId}">${data.assists}</td>
+                                    <td contenteditable="true" data-field="clean_sheets" data-stat-id="${newRowId}">${data.clean_sheets}</td>
+                                    <td contenteditable="true" data-field="season_avg" data-stat-id="${newRowId}">${data.season_avg}</td>
+                                </tr>
+                            `;
+                            $('#stats-table-body').append(newRow);
+                        } else {
+                            alert('Failed to extract data from PDF.');
+                        }
+                    },
+                    error: function() {
+                        alert('Error uploading PDF.');
+                    }
+                });
+            }
+        });
+    });
+</script>
 </body>
 </html>
