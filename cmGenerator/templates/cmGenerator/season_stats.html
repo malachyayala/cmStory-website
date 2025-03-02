@@ -38,10 +38,9 @@
             <div class="col">
                 <select class="form-control" id="seasonSelect">
                     {% for season in seasons %}
-                        <option value="{{ season.season }}">{{ season.season }}</option>
-                    {% empty %}
-                        <!-- Default season if no seasons exist -->
-                        <option value="23/24">2023/2024</option>
+                        <option value="{{ season.season }}" {% if selected_season == season.season %}selected{% endif %}>
+                            {{ season.season }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -153,9 +152,11 @@
                 },
                 success: function(response) {
                     if (response.success) {
-                        alert('Stats saved successfully!');
-                        // Optionally reload the page or update the UI
-                        location.reload();
+                        // Store current season before reload
+                        const currentSeason = $('#seasonSelect').val();
+                        
+                        // Reload the page with season parameter
+                        window.location.href = window.location.pathname + '?season=' + currentSeason;
                     } else {
                         alert('Error saving stats: ' + (response.error || 'Unknown error'));
                     }
@@ -218,15 +219,21 @@
                     if (response.success) {
                         // Add new season to dropdown
                         const option = document.createElement('option');
-                        option.value = newSeason;
-                        option.text = newSeason;  // Just use the season value directly
+                        option.value = response.season;
+                        option.text = response.season;
                         seasonSelect.add(option);
                         
                         // Select the new season
-                        seasonSelect.value = newSeason;
+                        seasonSelect.value = response.season;
+                        
+                        // Clear existing table rows for the new season
+                        $('#stats-table-body tr').hide();
                         
                         // Trigger season change event to update view
                         seasonSelect.dispatchEvent(new Event('change'));
+                        
+                        // Optional: Reload the page to ensure everything is in sync
+                        // location.reload();
                     } else {
                         alert('Error adding season: ' + (response.error || 'Unknown error'));
                     }

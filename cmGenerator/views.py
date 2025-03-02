@@ -137,40 +137,28 @@ def save_season_stats(request, story_id):
 
 @login_required
 def season_stats(request, story_id):
-    """
-    Displays and adds season stats for a specific story.
-    
-    Args:
-        request (HttpRequest): The request object.
-        story_id (int): The ID of the story.
-    
-    Returns:
-        HttpResponse: The page displaying and adding season stats.
-    """
     story = get_object_or_404(Story, id=story_id, user=request.user)
-    if request.method == "POST":
-        player_name = request.POST.get("player_name")
-        season = request.POST.get("season")
-        appearances = request.POST.get("appearances")
-        goals = request.POST.get("goals")
-        assists = request.POST.get("assists")
-        clean_sheets = request.POST.get("clean_sheets")
-        season_avg = request.POST.get("season_avg")
-
-        SeasonPlayerStats.objects.create(
+    seasons = Season.objects.filter(story=story).order_by('season')
+    
+    if not seasons.exists():
+        # Create initial season if none exist
+        Season.objects.create(
             story=story,
-            player_name=player_name,
-            season=season,
-            appearances=appearances,
-            goals=goals,
-            assists=assists,
-            clean_sheets=clean_sheets,
-            season_avg=season_avg
+            season="23/24"
         )
-        return redirect('season_stats', story_id=story.id)
-
-    season_stats = story.season_stats.all()
-    return render(request, 'cmGenerator/season_stats.html', {'story': story, 'season_stats': season_stats})
+        seasons = Season.objects.filter(story=story)
+    
+    season_stats = SeasonPlayerStats.objects.filter(story=story)
+    
+    # Get the selected season from query params
+    selected_season = request.GET.get('season')
+    
+    return render(request, 'cmGenerator/season_stats.html', {
+        'story': story,
+        'seasons': seasons,
+        'season_stats': season_stats,
+        'selected_season': selected_season,
+    })
 
 def register(request: HttpRequest) -> HttpResponse:
     """
@@ -245,94 +233,6 @@ def my_stories(request: HttpRequest) -> HttpResponse:
     stories = Story.objects.filter(user=request.user).order_by('-created_at')  # Get only user's stories
     return render(request, 'cmGenerator/my_stories.html', {'stories': stories})
 
-@csrf_exempt
-@login_required
-def extract_data_from_pdf(request):
-    if request.method == 'POST' and request.FILES.get('pdf'):
-        pdf = request.FILES['pdf']
-        pdf_path = default_storage.save('uploads/' + pdf.name, ContentFile(pdf.read()))
-
-        try:
-            # Extract text from the PDF
-            with open(pdf_path, 'rb') as pdf_file:
-                reader = PyPDF2.PdfFileReader(pdf_file)
-                text = ""
-                for page_num in range(reader.numPages):
-                    text += reader.getPage(page_num).extract_text()
-
-            # Initialize the OpenAI client with the new API format
-            client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
-            
-            # Use the new API format to analyze the text
-            response = client.chat.completions.create(
-                model='your-model',
-                messages=[
-                    {"role": "user", "content": f"Extract player stats from this text and return ONLY a valid JSON object with these fields: player_name, season, appearances, goals, assists, clean_sheets, season_avg. Format as valid JSON.\n\n{text}"},
-                ],
-                max_tokens=300
-            )
-            
-            # Get the raw text response
-            data_text = response.choices[0].message.content
-            
-            # Try to parse the response as JSON, or create default values if it fails
-            try:
-                # Clean up the text - sometimes models return markdown-formatted JSON
-                # Strip any markdown code block markers if present
-                if "```json" in data_text:
-                    data_text = data_text.split("```json")[1].split("```")[0].strip()
-                elif "```" in data_text:
-                    data_text = data_text.split("```")[1].split("```")[0].strip()
-                
-                extracted_data = json.loads(data_text)
-                
-                # Ensure all required fields exist
-                required_fields = ['player_name', 'season', 'appearances', 'goals', 
-                                   'assists', 'clean_sheets', 'season_avg']
-                for field in required_fields:
-                    if field not in extracted_data:
-                        extracted_data[field] = ""
-            
-            except json.JSONDecodeError:
-                # If we can't parse as JSON, create default values
-                extracted_data = {
-                    'player_name': "Could not extract name",
-                    'season': "Unknown",
-                    'appearances': "0",
-                    'goals': "0",
-                    'assists': "0",
-                    'clean_sheets': "0",
-                    'season_avg': "0.0"
-                }
-                
-                # Log the response for debugging
-                print(f"Failed to parse JSON response: {data_text}")
-
-            # Clean up the temporary file
-            default_storage.delete(pdf_path)
-
-            return JsonResponse({
-                'success': True,
-                'newRowId': -1,  # Use a negative ID for new rows
-                'player_name': extracted_data['player_name'],
-                'season': extracted_data['season'],
-                'appearances': extracted_data['appearances'],
-                'goals': extracted_data['goals'],
-                'assists': extracted_data['assists'],
-                'clean_sheets': extracted_data['clean_sheets'],
-                'season_avg': extracted_data['season_avg']
-            })
-            
-        except Exception as e:
-            # Handle any other exceptions
-            print(f"Error in extract_data_from_pdf: {str(e)}")
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=500)
-
-    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
-
 @login_required
 def add_season(request, story_id):
     if request.method == 'POST':
@@ -341,8 +241,11 @@ def add_season(request, story_id):
             story = get_object_or_404(Story, id=story_id, user=request.user)
             season = data.get('season')
             
-            # You might want to add the season to a Seasons model if you have one
-            # For now, we'll just return success since seasons are stored client-side
+            # Create and save the new season
+            Season.objects.create(
+                story=story,
+                season=season
+            )
             
             return JsonResponse({
                 'success': True,
@@ -370,3 +273,23 @@ def season_stats_view(request, story_id):
         'season_stats': season_stats,
         'seasons': seasons  # Add this line
     })
+
+@login_required
+def create_story(request):
+    if request.method == 'POST':
+        form = StoryForm(request.POST)
+        if form.is_valid():
+            story = form.save(commit=False)
+            story.user = request.user
+            story.save()
+            
+            # Create initial season
+            Season.objects.create(
+                story=story,
+                season="23/24"
+            )
+            
+            return redirect('season_stats', story_id=story.id)
+    else:
+        form = StoryForm()
+    return render(request, 'cmGenerator/create_story.html', {'form': form})
