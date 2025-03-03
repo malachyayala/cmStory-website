@@ -19,6 +19,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import PyPDF2
+from django.views.decorators.http import require_http_methods
+from .models import Transfer
 
 def index(request: HttpRequest) -> HttpResponse:
     """
@@ -92,6 +94,8 @@ def save_season_stats(request, story_id):
             stats = data.get('stats', [])
             story = get_object_or_404(Story, id=story_id, user=request.user)
             
+            new_player_id = None  # Initialize variable to store new player ID
+            
             for stat in stats:
                 stat_id = stat.get('id')
                 player_name = stat.get('player_name')
@@ -105,6 +109,7 @@ def save_season_stats(request, story_id):
                 stat_data = {
                     'player_name': player_name,
                     'season': season,
+                    'overall_rating': int(stat.get('overall_rating', 0)),
                     'appearances': int(stat.get('appearances', 0)),
                     'goals': int(stat.get('goals', 0)),
                     'assists': int(stat.get('assists', 0)),
@@ -121,15 +126,20 @@ def save_season_stats(request, story_id):
                         story=story
                     ).update(**stat_data)
                 else:
-                    # Create new stat using update_or_create to handle duplicates
-                    SeasonPlayerStats.objects.update_or_create(
+                    # Create new stat
+                    new_stat = SeasonPlayerStats.objects.create(
                         story=story,
-                        season=season,
-                        player_name=player_name,
-                        defaults=stat_data
+                        **stat_data
                     )
+                    new_player_id = new_stat.id
 
-            return JsonResponse({'success': True})
+            # Include the new player ID in the response
+            response_data = {'success': True}
+            if new_player_id:
+                response_data['new_player_id'] = new_player_id
+                
+            return JsonResponse(response_data)
+            
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
     
@@ -138,35 +148,36 @@ def save_season_stats(request, story_id):
 @login_required
 def season_stats(request, story_id):
     story = get_object_or_404(Story, id=story_id, user=request.user)
-    seasons = Season.objects.filter(story=story).order_by('season')
+    season = request.GET.get('season')
     
-    if not seasons.exists():
-        # Create initial season if none exist
-        Season.objects.create(
-            story=story,
-            season="23/24"
-        )
-        seasons = Season.objects.filter(story=story)
+    # Get all seasons
+    seasons = SeasonPlayerStats.objects.filter(story=story).values('season').distinct()
     
-    # Get the selected season from query params
-    selected_season = request.GET.get('season')
-    if not selected_season and seasons.exists():
-        selected_season = seasons.first().season
+    # If no season specified, get the most recent one
+    if not season and seasons.exists():
+        season = seasons.order_by('-season').first()['season']
     
-    season_stats = SeasonPlayerStats.objects.filter(story=story, season=selected_season)
+    # Get player stats for the selected season
+    season_stats = SeasonPlayerStats.objects.filter(story=story, season=season)
     
-    # Get or initialize season awards
+    # Get season awards
     try:
-        season_awards = SeasonAwards.objects.get(story=story, season=selected_season)
+        season_awards = SeasonAwards.objects.get(story=story, season=season)
     except SeasonAwards.DoesNotExist:
-        season_awards = SeasonAwards(story=story, season=selected_season)
+        season_awards = None
+    
+    # Get transfers for the selected season
+    transfers_in = Transfer.objects.filter(story=story, season=season, direction='in')
+    transfers_out = Transfer.objects.filter(story=story, season=season, direction='out')
     
     return render(request, 'cmGenerator/season_stats.html', {
         'story': story,
         'seasons': seasons,
+        'selected_season': season,
         'season_stats': season_stats,
-        'selected_season': selected_season,
         'season_awards': season_awards,
+        'transfers_in': transfers_in,
+        'transfers_out': transfers_out,
     })
 
 def register(request: HttpRequest) -> HttpResponse:
@@ -295,7 +306,7 @@ def create_story(request):
             # Create initial season
             Season.objects.create(
                 story=story,
-                season="23/24"
+                season="24/25"
             )
             
             return redirect('season_stats', story_id=story.id)
@@ -336,4 +347,88 @@ def save_season_awards(request, story_id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Invalid request method'})
+
+@require_http_methods(["POST"])
+def save_transfer(request, story_id):
+    try:
+        data = json.loads(request.body)
+        transfer_data = data.get('transfer')
+        
+        # Check if transfer exists
+        transfer_id = transfer_data.get('id')
+        if transfer_id and transfer_id > 0:
+            # Update existing transfer
+            transfer = Transfer.objects.get(id=transfer_id, story_id=story_id)
+            for field, value in transfer_data.items():
+                if field != 'id' and hasattr(transfer, field):
+                    setattr(transfer, field, value)
+            transfer.save()
+        else:
+            # Create new transfer
+            transfer = Transfer.objects.create(
+                story_id=story_id,
+                player_name=transfer_data.get('player_name', 'New Player'),
+                club=transfer_data.get('club', ''),
+                fee=transfer_data.get('fee', '€0'),
+                season=transfer_data.get('season'),
+                direction=transfer_data.get('direction')
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'transfer_id': transfer.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+@require_http_methods(["POST"])
+def delete_transfer(request, story_id):
+    try:
+        data = json.loads(request.body)
+        transfer_id = data.get('transfer_id')
+        
+        # Find and delete the transfer
+        transfer = Transfer.objects.get(id=transfer_id, story_id=story_id)
+        transfer.delete()
+        
+        return JsonResponse({
+            'success': True
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+@require_http_methods(["GET"])
+def get_transfers(request, story_id):
+    try:
+        season = request.GET.get('season')
+        
+        # Get transfers for the season
+        transfers_in = Transfer.objects.filter(
+            story_id=story_id,
+            season=season,
+            direction='in'
+        ).values('id', 'player_name', 'club', 'fee')
+        
+        transfers_out = Transfer.objects.filter(
+            story_id=story_id,
+            season=season,
+            direction='out'
+        ).values('id', 'player_name', 'club', 'fee')
+        
+        return JsonResponse({
+            'success': True,
+            'transfers_in': list(transfers_in),
+            'transfers_out': list(transfers_out)
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
 

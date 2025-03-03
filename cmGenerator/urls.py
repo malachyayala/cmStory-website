@@ -17,4 +17,7 @@ urlpatterns = [
     path('story/<int:story_id>/stats/save/', views.save_season_stats, name='save_season_stats'),
     path('story/<int:story_id>/add-season/', views.add_season, name='add_season'),
     path('save-season-awards/<int:story_id>/', views.save_season_awards, name='save_season_awards'),
+    path('story/<int:story_id>/save-transfer/', views.save_transfer, name='save_transfer'),
+    path('story/<int:story_id>/delete-transfer/', views.delete_transfer, name='delete_transfer'),
+    path('story/<int:story_id>/get-transfers/', views.get_transfers, name='get_transfers'),
 ]

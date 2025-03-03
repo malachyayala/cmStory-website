@@ -28,12 +28,13 @@ class SeasonPlayerStats(models.Model):
     story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='season_stats')
     player_name = models.CharField(max_length=100)
     season = models.CharField(max_length=10)
+    overall_rating = models.IntegerField(default=0)  # New field for player's overall rating
     appearances = models.IntegerField(default=0)
     goals = models.IntegerField(default=0)
     assists = models.IntegerField(default=0)
     clean_sheets = models.IntegerField(default=0)
-    red_cards = models.IntegerField(default=0)    # New field
-    yellow_cards = models.IntegerField(default=0)  # New field
+    red_cards = models.IntegerField(default=0)
+    yellow_cards = models.IntegerField(default=0)
     average_rating = models.DecimalField(max_digits=4, decimal_places=2, default=0.00)
     
     class Meta:
@@ -66,4 +67,15 @@ class SeasonAwards(models.Model):
 
     def __str__(self):
         return f"Awards for {self.story.club} - Season {self.season}"
+
+class Transfer(models.Model):
+    story = models.ForeignKey(Story, on_delete=models.CASCADE, related_name='transfers')
+    season = models.CharField(max_length=10)
+    player_name = models.CharField(max_length=100)
+    club = models.CharField(max_length=100)
+    fee = models.CharField(max_length=50)
+    direction = models.CharField(max_length=5, choices=[('in', 'In'), ('out', 'Out')])
+    
+    class Meta:
+        unique_together = ('story', 'season', 'player_name', 'direction')
 
