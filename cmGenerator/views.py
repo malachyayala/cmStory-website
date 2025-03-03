@@ -82,6 +82,13 @@ def save_story(request: HttpRequest) -> JsonResponse:
                 challenge=challenge,
                 background=background
             )
+            
+            # Create initial season
+            Season.objects.create(
+                story=story,
+                season="24/25"
+            )
+            
             return JsonResponse({"success": True, "message": "Story saved!", "story_id": story.id})
 
     return JsonResponse({"error": "Failed to save story"}, status=400)
@@ -149,14 +156,25 @@ def save_season_stats(request, story_id):
 def season_stats(request, story_id):
     story = get_object_or_404(Story, id=story_id, user=request.user)
     season = request.GET.get('season')
-    
-    # Get all seasons
-    seasons = SeasonPlayerStats.objects.filter(story=story).values('season').distinct()
-    
+
+    # Get all seasons from player stats
+    seasons_from_stats = SeasonPlayerStats.objects.filter(story=story).values('season').distinct()
+
+    # If no seasons in player stats, get seasons from Season model
+    if not seasons_from_stats.exists():
+        seasons = Season.objects.filter(story=story).values('season').distinct()
+    else:
+        seasons = seasons_from_stats
+
     # If no season specified, get the most recent one
     if not season and seasons.exists():
         season = seasons.order_by('-season').first()['season']
-    
+    elif not season:  # If still no season (no seasons exist at all)
+        # Create a default season if none exists
+        default_season = Season.objects.filter(story=story).first()
+        if default_season:
+            season = default_season.season
+
     # Get player stats for the selected season
     season_stats = SeasonPlayerStats.objects.filter(story=story, season=season)
     
