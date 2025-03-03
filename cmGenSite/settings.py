@@ -12,6 +12,12 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 import os
 from pathlib import Path
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -75,17 +81,28 @@ WSGI_APPLICATION = 'cmGenSite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# PostgreSQL connection details
+DB_HOST = os.getenv('DB_HOST')
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_PORT = os.getenv('DB_PORT')
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres', 
-        'PASSWORD': os.environ.get('SUPABASE_DB_PASSWORD'),
-        'HOST': os.environ.get('SUPABASE_HOST', 'db.andsqukcfzfpcnbejzxr.supabase.co'),
-        'PORT': '5432',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
