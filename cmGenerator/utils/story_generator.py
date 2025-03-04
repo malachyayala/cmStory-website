@@ -12,9 +12,7 @@ def generate_club_history_prompt(randomClub: str) -> str:
     I'm doing a FIFA career mode trying to generate important information to make my career mode more immersive and I need you to as a fifa career mode expert. 
     Make sure to pay close attention to the HTML tags I provide.
     Don't give me any extra text or output that is not asked for either, before or after the information requested.
-
-    Here is an example of extra text that is not needed: Here’s the requested information about CA Osasuna in the specified HTML format:
-
+    
     Please provie me with the following information about {randomClub} in an HTML format with the according tags.:
     <h4>Club Backstory:</h4>
     <p> Write an in-depth backstory of the club in a paragraph no longer than 10 sentences. Include at least 5 sentences about their 2 biggest rivals, and make it sound like a historian wrote it.</p>
