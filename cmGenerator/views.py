@@ -157,23 +157,16 @@ def season_stats(request, story_id):
     story = get_object_or_404(Story, id=story_id, user=request.user)
     season = request.GET.get('season')
 
-    # Get all seasons from player stats
-    seasons_from_stats = SeasonPlayerStats.objects.filter(story=story).values('season').distinct()
-
-    # If no seasons in player stats, get seasons from Season model
-    if not seasons_from_stats.exists():
-        seasons = Season.objects.filter(story=story).values('season').distinct()
-    else:
-        seasons = seasons_from_stats
+    # Always get seasons from Season model
+    seasons = Season.objects.filter(story=story).values('season').distinct()
 
     # If no season specified, get the most recent one
     if not season and seasons.exists():
         season = seasons.order_by('-season').first()['season']
     elif not season:  # If still no season (no seasons exist at all)
-        # Create a default season if none exists
-        default_season = Season.objects.filter(story=story).first()
-        if default_season:
-            season = default_season.season
+        season = None
+
+    # Rest of the view remains the same...
 
     # Get player stats for the selected season
     season_stats = SeasonPlayerStats.objects.filter(story=story, season=season)
@@ -315,7 +308,7 @@ def season_stats_view(request, story_id):
 @login_required
 def create_story(request):
     if request.method == 'POST':
-        form = StoryForm(request.POST)
+        form = StoryForm(request.POST) # type: ignore
         if form.is_valid():
             story = form.save(commit=False)
             story.user = request.user
@@ -329,7 +322,7 @@ def create_story(request):
             
             return redirect('season_stats', story_id=story.id)
     else:
-        form = StoryForm()
+        form = StoryForm() # type: ignore
     return render(request, 'cmGenerator/create_story.html', {'form': form})
 
 @login_required
@@ -453,23 +446,16 @@ def get_transfers(request, story_id):
 def get_seasons(request, story_id):
     if request.method == 'GET':
         try:
-            # Get the story object
             story = Story.objects.get(id=story_id)
-            
-            # Ensure user has permission to view this story
             if story.user != request.user:
                 return JsonResponse({'success': False, 'error': 'Permission denied'})
             
-            # Get all seasons for this story
-            # This will depend on your model structure - adjust as needed
-            seasons = SeasonStats.objects.filter(story=story).values('season').distinct()
-            season_list = [s['season'] for s in seasons]
+            # Get seasons from Season model
+            seasons = Season.objects.filter(story=story)\
+                          .values_list('season', flat=True)\
+                          .distinct()
             
-            # Return seasons as JSON
-            return JsonResponse({
-                'success': True,
-                'seasons': season_list
-            })
+            return JsonResponse({'success': True, 'seasons': list(seasons)})
             
         except Story.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Story not found'})
