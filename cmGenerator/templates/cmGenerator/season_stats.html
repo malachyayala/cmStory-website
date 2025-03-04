@@ -7,17 +7,21 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <style>
+        /* Base styles for editable content */
         [contenteditable="true"] {
             border: 1px solid #ced4da;
             padding: 5px;
             border-radius: 4px;
             background-color: #f8f9fa;
         }
+        
         [contenteditable="true"]:focus {
             outline: none;
             border-color: #80bdff;
             box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
         }
+        
+        /* Alert notifications */
         .alert {
             position: fixed;
             top: 20px;
@@ -25,36 +29,45 @@
             z-index: 1050;
             min-width: 200px;
         }
-        /* Update these styles to match the League Winners & Awards card */
-        .season-stats-card {
-            /* Remove the negative margins that were pushing it out too far */
-            margin-left: 0;
-            margin-right: 0;
-            padding: 0;
-        }
-        .season-stats-card .card {
+        
+        /* Card styles */
+        .card {
+            animation: fadeIn 0.5s ease-out;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            /* Match the style but keep within container bounds */
-            width: 100%;
         }
-        .season-stats-card .card-body {
-            padding: 1.25rem; /* Match Bootstrap's default card-body padding */
-        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        
         .card-header {
             transition: background-color 0.3s;
+            cursor: pointer;
         }
         
         .card-header:hover {
             background-color: #e9ecef;
         }
         
-        .collapse-icon {
-            transition: transform 0.3s;
+        /* Season stats card specific styles */
+        .season-stats-card {
+            margin-left: 0;
+            margin-right: 0;
+            padding: 0;
         }
         
+        .season-stats-card .card {
+            width: 100%;
+        }
+        
+        .season-stats-card .card-body {
+            padding: 1.25rem;
+        }
+        
+        /* Collapsible elements */
         .card-body.collapse {
-            display: none;
+            transition: height 0.35s ease, opacity 0.35s ease;
         }
         
         .card-body.collapsing {
@@ -66,19 +79,125 @@
         .card-body.collapse.show {
             display: block;
         }
+        
+        .collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .card-header:hover .collapse-icon {
+            transform: rotate(180deg);
+        }
+        
+        /* Table row hover effects */
+        #stats-table-body tr, 
+        #players-in-tbody tr, 
+        #players-out-tbody tr {
+            transition: background-color 0.3s ease;
+        }
+        
+        #stats-table-body tr:hover,
+        #players-in-tbody tr:hover,
+        #players-out-tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        /* Form controls */
+        input.form-control, select.form-control {
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        
+        .form-control:focus {
+            transform: scale(1.01);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        /* Button styles */
+        .btn {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:active {
+            transform: scale(0.97);
+        }
+        
+        /* Animation keyframes */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Navbar styles */
+        .navbar {
+            background-color: #343a40;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+            transition: color 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: #fff !important;
+        }
+        
+        .nav-link.active {
+            color: #fff !important;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="text-right my-3">
-        {% if user.is_authenticated %}
-        <p>
-            <a href="{% url 'my_stories' %}" class="btn btn-outline-secondary btn-sm">Back to My Stories</a>
-            <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
-        </p>
-        {% endif %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'home' %}">FIFA Career Story</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'home' %}">Home</a>
+                </li>
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'my_stories' %}">My Stories</a>
+                </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <span class="nav-link">Welcome, {{ user.username }}</span>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'login' %}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'register' %}">Register</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
     </div>
+</nav>
 
+<div class="container">
     <h1 class="my-4 text-center">Season Stats for {{ story.club }}</h1>
 
     <!-- Season selector -->
@@ -343,6 +462,58 @@
 <script>
     $(document).ready(function() {
         let newRowId = -1; // Initialize new row ID as a negative number
+
+        // When page loads, ensure all seasons are properly displayed
+        function ensureSeasonsLoaded() {
+            const storyId = $('input[name="story_id"]').val();
+            
+            // Make an AJAX call to get all seasons for this story
+            $.ajax({
+                url: '{% url "get_seasons" story.id %}',  // You'll need to create this URL in urls.py
+                type: 'GET',
+                data: {
+                    story_id: storyId
+                },
+                success: function(response) {
+                    if (response.success && response.seasons && response.seasons.length > 0) {
+                        // Clear and repopulate the season dropdown
+                        const seasonSelect = $('#seasonSelect');
+                        const currentSelected = seasonSelect.val();
+                        seasonSelect.empty();
+                        
+                        // Add all seasons from the response
+                        response.seasons.forEach(function(season) {
+                            const option = $('<option></option>')
+                                .attr('value', season)
+                                .text(season);
+                                
+                            // If this was the selected season, keep it selected
+                            if (season === currentSelected) {
+                                option.attr('selected', true);
+                            }
+                            
+                            seasonSelect.append(option);
+                        });
+                        
+                        // If nothing is selected, select the first season
+                        if (seasonSelect.val() === null && response.seasons.length > 0) {
+                            seasonSelect.val(response.seasons[0]);
+                            seasonSelect.trigger('change');
+                        }
+                    } else {
+                        console.error("Failed to load seasons or no seasons returned");
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error loading seasons:", error);
+                }
+            });
+        }
+        
+        // Call this function when page loads
+        ensureSeasonsLoaded();
+        
+        // Rest of your existing code...
 
         // Handle the Save Changes form submission
         $('#edit-stats-form').on('submit', function(e) {
@@ -1128,6 +1299,97 @@ $(document).ready(function() {
     // Load transfers for initial season
     loadTransfersForSeason($('#seasonSelect').val());
 });
+</script>
+
+<script>
+    // Fix for season loading issue
+    $(document).ready(function() {
+        // URLSearchParams polyfill for IE11
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Get initial season using the polyfill function instead of URLSearchParams
+        let currentSeason = getUrlParameter('season');
+        
+        if (!currentSeason) {
+            currentSeason = $('#seasonSelect').val();
+        }
+        
+        // Make sure we have the history state set correctly
+        if (history.replaceState) {
+            const newUrl = window.location.pathname + '?season=' + currentSeason;
+            history.replaceState({season: currentSeason}, '', newUrl);
+        }
+        
+        // Bind a more robust change handler to the season select
+        $('#seasonSelect').off('change').on('change', function() {
+            const selectedSeason = $(this).val();
+            window.location.href = window.location.pathname + '?season=' + selectedSeason;
+        });
+        
+        // Add a direct back button function to preserve state
+        window.addEventListener('popstate', function(e) {
+            if (e.state && e.state.season) {
+                // Handle browser back button by reloading with correct season
+                window.location.reload();
+            }
+        });
+        
+        // Add season button handler - using off() to remove any previous handlers
+        $('#addSeasonBtn').off('click').on('click', function() {
+            const seasonSelect = document.getElementById('seasonSelect');
+            const seasons = Array.from(seasonSelect.options).map(opt => opt.value);
+            const lastSeason = seasons[seasons.length - 1];
+            
+            // Parse the season parts
+            const [start, end] = lastSeason.split('/');
+            let newStart = parseInt(start);
+            let newEnd = parseInt(end);
+            
+            // Increment years
+            newStart = newStart + 1;
+            newEnd = newEnd + 1;
+            
+            const newSeason = `${newStart}/${newEnd}`;
+            
+            // Send AJAX request to save new season
+            $.ajax({
+                url: '{% url "add_season" story.id %}',
+                type: 'POST',
+                data: JSON.stringify({
+                    season: newSeason,
+                    story_id: '{{ story.id }}'
+                }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Redirect to the new season page
+                        window.location.href = window.location.pathname + '?season=' + newSeason;
+                    } else {
+                        alert('Error adding season: ' + (response.error || 'Unknown error'));
+                    }
+                },
+                error: function(xhr) {
+                    // Try to parse the error response
+                    try {
+                        const errorResponse = JSON.parse(xhr.responseText);
+                        console.error("Failed to add season:", errorResponse);
+                        alert('Error adding season: ' + (errorResponse.error || 'Server error occurred'));
+                    } catch (e) {
+                        console.error("Failed to add season:", xhr.responseText);
+                        alert('Error adding season. Please try again.');
+                    }
+                }
+            });
+        });
+    });
 </script>
 </body>
 </html>

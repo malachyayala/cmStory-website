@@ -20,4 +20,5 @@ urlpatterns = [
     path('story/<int:story_id>/save-transfer/', views.save_transfer, name='save_transfer'),
     path('story/<int:story_id>/delete-transfer/', views.delete_transfer, name='delete_transfer'),
     path('story/<int:story_id>/get-transfers/', views.get_transfers, name='get_transfers'),
+    path('story/<int:story_id>/get-seasons/', views.get_seasons, name='get_seasons'),
 ]

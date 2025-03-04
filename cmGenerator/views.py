@@ -450,3 +450,31 @@ def get_transfers(request, story_id):
             'error': str(e)
         }, status=400)
 
+def get_seasons(request, story_id):
+    if request.method == 'GET':
+        try:
+            # Get the story object
+            story = Story.objects.get(id=story_id)
+            
+            # Ensure user has permission to view this story
+            if story.user != request.user:
+                return JsonResponse({'success': False, 'error': 'Permission denied'})
+            
+            # Get all seasons for this story
+            # This will depend on your model structure - adjust as needed
+            seasons = SeasonStats.objects.filter(story=story).values('season').distinct()
+            season_list = [s['season'] for s in seasons]
+            
+            # Return seasons as JSON
+            return JsonResponse({
+                'success': True,
+                'seasons': season_list
+            })
+            
+        except Story.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Story not found'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+            
+    return JsonResponse({'success': False, 'error': 'Invalid request method'})
+

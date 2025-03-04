@@ -43,24 +43,68 @@
             gap: 10px; /* Add spacing between buttons */
             margin-top: 20px;
         }
+        .navbar {
+            background-color: #343a40;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff;
+        }
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8) !important;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #fff !important;
+        }
+        .nav-link.active {
+            color: #fff !important;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div class="container text-center">
-        <div class="text-right my-3">
-            {% if user.is_authenticated %}
-            <p>
-                <a href="{% url 'my_stories' %}" class="btn btn-outline-secondary btn-sm">My Stories</a>
-                <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm">Logout</a>
-            </p>
-            {% else %}
-                <p>
-                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Login</a>
-                    <a href="{% url 'register' %}" class="btn btn-outline-success btn-sm">Register</a>
-                </p>
-            {% endif %}
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">FIFA Career Story</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'home' %}">Home</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'my_stories' %}">My Stories</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <span class="nav-link">Welcome, {{ user.username }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
-        
+    </nav>
+
+    <div class="container text-center">        
         <h1 class="my-4">FIFA Career Story Generator</h1>
     
         <div class="row justify-content-center">
