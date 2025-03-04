@@ -878,10 +878,13 @@ $(document).ready(function() {
         const storyId = $('input[name="story_id"]').val();
         const tableId = direction === 'in' ? 'players-in-tbody' : 'players-out-tbody';
         
-        // Default data for new transfer
+        // Count existing transfers to create a unique name
+        const existingCount = $(`#${tableId} tr`).length;
+        
+        // Default data for new transfer with unique name
         const transferData = {
             id: currentId,
-            player_name: "New Player",
+            player_name: `New Player ${existingCount + 1}`,  // Make name unique
             club: direction === 'in' ? "Former Club" : "New Club",
             fee: "€0",
             direction: direction,
