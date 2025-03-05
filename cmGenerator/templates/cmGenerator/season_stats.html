@@ -653,64 +653,79 @@
         });
 
         document.getElementById('addSeasonBtn').addEventListener('click', function() {
+            const button = this;
+        
+            // Prevent duplicate submissions
+            if (button.disabled) return;
+            button.disabled = true;
+        
             const seasonSelect = document.getElementById('seasonSelect');
             const seasons = Array.from(seasonSelect.options).map(opt => opt.value);
             const lastSeason = seasons[seasons.length - 1];
-            
-            // Parse the season parts
+        
+            // Parse the last season and generate the new season
             const [start, end] = lastSeason.split('/');
-            let newStart = parseInt(start);
-            let newEnd = parseInt(end);
-            
-            // Check if the season format was already incorrect (same year for both parts)
-            if (start === end) {
-                // Fix by making end one year after start
-                newEnd = newStart + 1;
-            } else {
-                // Normal increment - add 1 to both years
-                newStart = newStart + 1;
-                newEnd = newEnd + 1;
-            }
-            
+            const newStart = parseInt(start) + 1;
+            const newEnd = parseInt(end) + 1;
             const newSeason = `${newStart}/${newEnd}`;
-            
-            // Send AJAX request to save new season
+        
+            // Disable button and send request
             $.ajax({
                 url: '{% url "add_season" story.id %}',
                 type: 'POST',
-                data: JSON.stringify({
-                    season: newSeason,
-                    story_id: '{{ story.id }}'
-                }),
+                data: JSON.stringify({ season: newSeason }),
                 contentType: 'application/json',
                 headers: {
                     'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
                 },
                 success: function(response) {
                     if (response.success) {
-                        // Add new season to dropdown
+                        // Add new season to the dropdown
                         const option = document.createElement('option');
                         option.value = response.season;
                         option.text = response.season;
-                        seasonSelect.add(option);
-                        
+                        seasonSelect.appendChild(option);
+        
                         // Select the new season
                         seasonSelect.value = response.season;
                         
-                        // Clear existing table rows for the new season
-                        $('#stats-table-body tr').hide();
-                        
-                        // Trigger season change event to update view
-                        seasonSelect.dispatchEvent(new Event('change'));
-                        
-                        // Optional: Reload the page to ensure everything is in sync
-                        // location.reload();
+                        // Redirect to the new season page
+                        window.location.href = window.location.pathname + '?season=' + response.season;
                     } else {
-                        alert('Error adding season: ' + (response.error || 'Unknown error'));
+                        alert(response.error || 'Unknown error occurred.');
                     }
                 },
                 error: function(xhr) {
-                    alert('Error adding season. Please try again.');
+                    // Try to parse the response to handle known errors
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData.success === true) {
+                            // This is actually a success response that was misinterpreted as an error
+                            // Add new season to dropdown
+                            const option = document.createElement('option');
+                            option.value = errorData.season;
+                            option.text = errorData.season;
+                            seasonSelect.appendChild(option);
+                            
+                            // Select and navigate to the new season
+                            seasonSelect.value = errorData.season;
+                            window.location.href = window.location.pathname + '?season=' + errorData.season;
+                            return;
+                        } else if (errorData.error && errorData.error.includes("duplicate key value")) {
+                            alert(`Season ${newSeason} already exists.`);
+                            // Navigate to the existing season
+                            seasonSelect.value = newSeason;
+                            window.location.href = window.location.pathname + '?season=' + newSeason;
+                            return;
+                        }
+                    } catch(e) {
+                        // Could not parse response as JSON, continue with generic error
+                    }
+                    
+                    alert('Error adding season. Please check your input and try again.');
+                },
+                complete: function() {
+                    button.disabled = false; // Re-enable button after request completion
                 }
             });
         });
@@ -936,20 +951,28 @@ $(document).on('keydown', '[contenteditable="true"]', function(e) {
                 }
             },
             error: function(xhr) {
-                // Visual feedback for error
-                $(e.target).css('background-color', '#ffe6e6');  // Light red
-                
-                let errorMessage = 'Error saving change.';
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    errorMessage += ' ' + (response.error || response.message || '');
+                    if (response.error && response.error.includes("duplicate key value")) {
+                        alert(`Season ${newSeason} already exists.`);
+            
+                        // Optionally add season to dropdown if not yet displayed
+                        if (!seasonExists) {
+                            const option = document.createElement('option');
+                            option.value = newSeason;
+                            option.text = newSeason;
+                            seasonSelect.add(option);
+                        }
+            
+                        // Navigate to the season directly
+                        seasonSelect.value = newSeason;
+                        window.location.href = window.location.pathname + '?season=' + newSeason;
+                    } else {
+                        alert('Error adding season: ' + (response.error || 'Unknown error'));
+                    }
                 } catch (e) {
-                    // Keep default error message if response can't be parsed
+                    alert('Error adding season. Please try again.');
                 }
-                alert(errorMessage);
-                
-                // Reset background color
-                $(e.target).css('background-color', '#f8f9fa');  // Back to default
             }
         });
         
@@ -1320,8 +1343,14 @@ $(document).ready(function() {
             }
         });
         
-        // Add season button handler
+        // Remove the old event handler(s) and add a clean implementation
         $('#addSeasonBtn').off('click').on('click', function() {
+            const button = this;
+            
+            // Prevent duplicate submissions
+            if (button.disabled) return;
+            button.disabled = true;
+            
             const seasonSelect = document.getElementById('seasonSelect');
             const seasons = Array.from(seasonSelect.options).map(opt => opt.value);
             const lastSeason = seasons[seasons.length - 1];
@@ -1337,13 +1366,25 @@ $(document).ready(function() {
             
             const newSeason = `${newStart}/${newEnd}`;
             
+            // Check if the season already exists in the dropdown
+            const seasonExists = Array.from(seasonSelect.options).some(opt => opt.value === newSeason);
+            
+            if (seasonExists) {
+                // If season already exists, just navigate to it
+                alert(`Navigating to existing season ${newSeason}.`);
+                seasonSelect.value = newSeason;
+                window.location.href = window.location.pathname + '?season=' + newSeason;
+                button.disabled = false;
+                return;
+            }
+            
             // Send AJAX request to save new season
             $.ajax({
                 url: '{% url "add_season" story.id %}',
                 type: 'POST',
                 data: JSON.stringify({
                     season: newSeason,
-                    story_id: '{{ story.id }}'
+                    story_id: {{ story.id }}
                 }),
                 contentType: 'application/json',
                 headers: {
@@ -1351,15 +1392,59 @@ $(document).ready(function() {
                 },
                 success: function(response) {
                     if (response.success) {
+                        // Add new season to dropdown
+                        const option = document.createElement('option');
+                        option.value = response.season;
+                        option.text = response.season;
+                        seasonSelect.add(option);
+                        
+                        // Select the new season
+                        seasonSelect.value = response.season;
+                        
                         // Redirect to the new season page
                         window.location.href = window.location.pathname + '?season=' + newSeason;
                     } else {
                         alert('Error adding season: ' + (response.error || 'Unknown error'));
+                        button.disabled = false;
                     }
                 },
                 error: function(xhr) {
                     console.error("Failed to add season:", xhr.responseText);
-                    alert('Error adding season. Please try again.');
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData.success === true) {
+                            // Sometimes success comes through the error handler
+                            // Add new season to dropdown
+                            const option = document.createElement('option');
+                            option.value = errorData.season;
+                            option.text = errorData.season;
+                            seasonSelect.add(option);
+                            
+                            // Navigate to new season
+                            seasonSelect.value = errorData.season;
+                            window.location.href = window.location.pathname + '?season=' + errorData.season;
+                        } else if (errorData.error && errorData.error.includes("duplicate key value")) {
+                            // Handle duplicate key specifically
+                            alert(`Season ${newSeason} already exists. Navigating to it now.`);
+                            
+                            // If it exists in database but not in dropdown, add it
+                            if (!seasonExists) {
+                                const option = document.createElement('option');
+                                option.value = newSeason;
+                                option.text = newSeason;
+                                seasonSelect.add(option);
+                            }
+                            
+                            // Navigate to that season
+                            seasonSelect.value = newSeason;
+                            window.location.href = window.location.pathname + '?season=' + newSeason;
+                        } else {
+                            alert('Error adding season: ' + (errorData.error || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        alert('Error adding season. Please try again.');
+                    }
+                    button.disabled = false;
                 }
             });
         });

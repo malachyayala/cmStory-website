@@ -9,26 +9,37 @@ def get_random_item(file_path):
     
 def generate_club_history_prompt(randomClub: str) -> str:
     return f"""
-    I'm doing a FIFA career mode trying to generate important information to make my career mode more immersive and I need you to as a fifa career mode expert. 
-    Make sure to pay close attention to the HTML tags I provide.
-    Don't give me any extra text or output that is not asked for either, before or after the information requested.
-    
-    Please provie me with the following information about {randomClub} in an HTML format with the according tags.:
+    Provide the following information about {randomClub} in immersive and historically detailed HTML format. 
+    Ensure it reads like a historian’s analysis and reflects the deep-rooted culture of the club. 
+    Use evocative language and concrete examples rather than generalizations.
+
     <h4>Club Backstory:</h4>
-    <p> Write an in-depth backstory of the club in a paragraph no longer than 10 sentences. Include at least 5 sentences about their 2 biggest rivals, and make it sound like a historian wrote it.</p>
+    <p> Write a rich historical backstory of {randomClub}, covering its founding, struggles, golden eras, and cultural impact. 
+    Include details about its two fiercest rivals, explaining how these rivalries originated and evolved over time—highlighting key matches, controversial moments, ideological divides, and legendary clashes. 
+    Mention the club’s fan culture, stadium atmosphere, and how the team is perceived domestically and internationally. 
+    Ensure this section is no longer than 10 sentences. </p>
 
     <h4>League History:</h4>
-    <p> Write a paragraph about the history of the league {randomClub} is in. Focus on the 4 most successful clubs and the 5 biggest rivalries, explaining why they are rivals. Ensure it is no less than 6 sentences and sounds like a historian wrote it.</p>
+    <p> Provide an authoritative historical overview of the league {randomClub} competes in. 
+    Detail its formation, major reforms, and most successful clubs (focusing on the four most dominant teams). 
+    Discuss the five fiercest rivalries, explaining their origins—whether based on geography, class divides, historical matches, or political tensions. 
+    Ensure the paragraph is at least 6 sentences long and written in an engaging, historian-like tone. </p>
 
     <h4>Club Philosophy:</h4>
-    <p> Provide a 7-sentence paragraph about {randomClub}'s playing style and transfer philosophy.</p>
+    <p> Explain {randomClub}’s tactical identity and transfer policy in an engaging and detailed manner. 
+    Cover their playing style (e.g., possession-based, counter-attacking, pressing), their approach to player recruitment (big spending vs. academy reliance), and how their philosophy has evolved under different managers. 
+    Mention the club’s youth development strategy, scouting networks, and managerial legacy. 
+    Ensure this is a structured, 7-sentence response. </p>
 
     <h4>Club Influence and Achievements:</h4>
-    <p> Write a paragraph about {randomClub}'s influence on soccer. Include details about their most successful season in the league and continental competitions. Mention club legends and current key players, and make it sound like a historian wrote it.</p>
+    <p> Analyze {randomClub}’s historical significance and competitive achievements. 
+    Detail their most successful league season, their greatest international triumphs, and how they compare to domestic and continental rivals. 
+    Mention club legends, current star players, and their role in shaping the modern game. Discuss their fanbase, media presence, and lasting legacy within football culture. 
+    Ensure this reads like a historian’s perspective, rather than a generic summary. </p> 
     """
     
 def generate_club_background(club):
-    client = OpenAI(base_url="http://127.0.0.1:1234/v1", api_key="lm-studio")
+    client = OpenAI(base_url="http://192.168.0.123:1234/v1", api_key="lm-studio")
     
     response = client.chat.completions.create(
         model='your-model',

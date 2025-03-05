@@ -13,14 +13,10 @@ from django.http import HttpRequest
 import os
 from .models import Season, Story, SeasonPlayerStats, SeasonAwards
 from .utils.story_generator import generate_all
-from django.core.exceptions import ObjectDoesNotExist
-from openai import OpenAI
-from django.views.decorators.csrf import csrf_exempt
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-import PyPDF2
 from django.views.decorators.http import require_http_methods
 from .models import Transfer
+from django.core.exceptions import ValidationError
+import re
 
 def index(request: HttpRequest) -> HttpResponse:
     """
@@ -265,33 +261,25 @@ def my_stories(request: HttpRequest) -> HttpResponse:
     return render(request, 'cmGenerator/my_stories.html', {'stories': stories})
 
 @login_required
+@login_required
 def add_season(request, story_id):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             story = get_object_or_404(Story, id=story_id, user=request.user)
             season = data.get('season')
-            
+
+            # Check for duplicate season as the first step
+            if Season.objects.filter(story=story, season=season).exists():
+                return JsonResponse({'success': False, 'error': f'Season {season} already exists.'}, status=400)
+
             # Create and save the new season
-            Season.objects.create(
-                story=story,
-                season=season
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'season': season
-            })
+            Season.objects.create(story=story, season=season)
+
+            return JsonResponse({'success': True, 'season': season})
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'error': str(e)
-            }, status=400)
-    
-    return JsonResponse({
-        'success': False,
-        'error': 'Invalid request method'
-    }, status=405)
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
 
 @login_required
 def season_stats_view(request, story_id):
