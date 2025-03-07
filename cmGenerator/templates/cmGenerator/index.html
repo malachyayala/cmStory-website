@@ -5,62 +5,102 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIFA Story Generator</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        #backgroundCard {
-            height: 500px;
-            overflow-y: auto; /* Enable vertical scrolling if content overflows */
+        :root {
+            --primary-color: #338af3; /* Softer blue */
+            --secondary-color: #003f7f; /* Deeper navy */
+            --accent-color: #ff7f50; /* Warm contrast */
+            --background-color: #f0f2f5; /* Slightly warmer background */
+            --text-color: #2c2f35; /* Softer dark gray */
+            --navbar-color: #2c2f35; /* Dark gray for consistency */
+            --footer-color: #1f252b; /* Slightly darker footer */
         }
 
         body {
-            background-color: #f4f4f9;
+            background-color: var(--background-color);
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-color);
         }
+
+        .navbar, footer {
+            background-color: var(--navbar-color);
+            color: #fff;
+        }
+
         .card {
             border: none;
-            background-color: #e9ecef;
+            background-color: #ffffff;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
             margin: 20px 10px;
-            text-align: left;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .scrollable-card {
+            max-height: 300px; /* Adjust the height as needed */
+            overflow-y: auto;
+        }
+
         .loader {
             display: none;
             width: 50px;
         }
-        #generateBtn {
-            background-color: #007bff;
+
+        #generateBtn, #saveStoryBtn {
+            background: var(--primary-color);
             color: white;
             border: none;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background 0.3s ease, transform 0.3s ease;
         }
-        #generateBtn:hover {
-            background-color: #0056b3;
+
+        #generateBtn:hover, #saveStoryBtn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-5px);
         }
+
+        #generateBtn:disabled, #saveStoryBtn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .button-container {
             display: flex;
-            justify-content: center; /* Keep buttons centered */
-            gap: 10px; /* Add spacing between buttons */
+            justify-content: center;
+            gap: 10px;
             margin-top: 20px;
         }
-        .navbar {
-            background-color: #343a40;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .navbar-brand {
-            font-weight: bold;
-            color: #fff;
-        }
+
         .nav-link {
             color: rgba(255, 255, 255, 0.8) !important;
             transition: color 0.3s ease;
         }
+
         .nav-link:hover {
             color: #fff !important;
         }
+
         .nav-link.active {
             color: #fff !important;
             font-weight: bold;
+        }
+
+        footer {
+            background-color: var(--footer-color);
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
         }
     </style>
 </head>
@@ -104,33 +144,43 @@
         </div>
     </nav>
 
-    <div class="container text-center">        
+    <div class="container text-center">
         <h1 class="my-4">FIFA Career Story Generator</h1>
-    
-        <div class="row justify-content-center">
-            <div class="col-lg-10 col-md-12 col-sm-14">
-                <div class="card mb-3" id="clubCard"></div>
-                <div class="card mb-3" id="formationCard"></div>
-                <div class="card mb-3" id="challengeCard"></div>
-                <div class="card mb-3" id="backgroundCard"></div>
-    
-                <div class="button-container">
-                    <button onclick="generateStory()" id="generateBtn" class="btn btn-primary btn-lg mb-3">Generate New Story</button>
-                    {% if user.is_authenticated %}
-                        <button onclick="saveStory()" id="saveStoryBtn" class="btn btn-success btn-lg mb-3">Save Story</button>
-                    {% else %}
-                        <button class="btn btn-success btn-lg mb-3" onclick="window.location.href='{% url 'login' %}'">
-                            Login to Save Stories
-                        </button>
-                    {% endif %}
-                </div>
-                <div class="text-center">
-                    <img src="https://i.gifer.com/ZZ5H.gif" class="loader" id="loader" alt="Loading...">
+        
+        <section id="story-cards">
+            <div class="row justify-content-center">
+                <div class="col-lg-10 col-md-12 col-sm-14">
+                    <div class="card mb-3" id="clubCard"></div>
+                    <div class="card mb-3" id="formationCard"></div>
+                    <div class="card mb-3" id="challengeCard"></div>
+                    <div class="card mb-3 scrollable-card" id="backgroundCard"></div>
                 </div>
             </div>
-        </div>
+        </section>
+        
+        <section id="buttons">
+            <div class="button-container">
+                <button onclick="generateStory()" id="generateBtn" class="btn btn-primary btn-lg mb-3">Generate New Story</button>
+                {% if user.is_authenticated %}
+                    <button onclick="saveStory()" id="saveStoryBtn" class="btn btn-success btn-lg mb-3">Save Story</button>
+                {% else %}
+                    <button class="btn btn-success btn-lg mb-3" onclick="window.location.href='{% url 'login' %}'">
+                        Login to Save Stories
+                    </button>
+                {% endif %}
+            </div>
+        </section>
+        
+        <section id="loader">
+            <div class="text-center">
+                <img src="https://i.gifer.com/ZZ5H.gif" class="loader" id="loader" alt="Loading...">
+            </div>
+        </section>
     </div>
     
+    <footer>
+        <p>&copy; 2025 FIFA Career Story Generator. All rights reserved.</p>
+    </footer>
 
     <script>
         function generateStory() {
@@ -230,7 +280,6 @@
         }
     </script>
     
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
