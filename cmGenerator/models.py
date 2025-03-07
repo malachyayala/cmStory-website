@@ -2,26 +2,117 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.contrib.postgres.fields import ArrayField
+
+class Competition(models.Model):
+    """
+    Represents a football competition.
+
+    Attributes:
+        name (str): The name of the competition. This is a CharField with a maximum length of 100 characters.
+        competition_type (str): The type of competition (e.g., "League", "Cup"). This is a CharField with a maximum length of 50 characters.
+    """
+    name = models.CharField(max_length=100)  # e.g. "Premier League", "Champions League"
+    competition_type = models.CharField(max_length=50)  # e.g. "League", "Cup"
+    
+    def __str__(self):
+        return self.name
 
 class Club(models.Model):
     """
     Represents a football club.
 
     Attributes:
+        league_id (int): The unique identifier for the league. This is an IntegerField.
+        league (Competition): The league in which the club competes. This is a ForeignKey to the Competition model with CASCADE delete.
         name (str): The name of the club. This is a CharField with a maximum length of 255 characters.
-        league (str): The league in which the club competes. This is a CharField with a maximum length of 100 characters.
+        club_logo_small_url (str): URL to the small version of the club's logo. This is a URLField that can be blank or null.
+        club_logo_big_url (str): URL to the big version of the club's logo. This is a URLField that can be blank or null.
+        overall (int): The overall rating of the club. This is an IntegerField.
+        att_rating (int): The attacking rating of the club. This is an IntegerField.
+        mid_rating (int): The midfield rating of the club. This is an IntegerField.
+        def_rating (int): The defensive rating of the club. This is an IntegerField.
         country (str): The country where the club is based. This is a CharField with a maximum length of 100 characters.
+        scout_region (str): The scout region of the club. This is a CharField with a maximum length of 100 characters.
+        dom_prestige (int): The domestic prestige of the club. This is an IntegerField.
+        intl_prestige (int): The international prestige of the club. This is an IntegerField.
+        league_rep (int): The league reputation of the club. This is an IntegerField.
+        youth_scouting_region (str): The youth scouting region of the club. This is a CharField with a maximum length of 100 characters.
     """
+    league_id = models.IntegerField()
+    league = models.ForeignKey(Competition, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    league = models.CharField(max_length=100)
+    club_logo_small_url = models.URLField(null=True, blank=True)
+    club_logo_big_url = models.URLField(null=True, blank=True)
+    overall = models.IntegerField()
+    att_rating = models.IntegerField()
+    mid_rating = models.IntegerField()
+    def_rating = models.IntegerField()
     country = models.CharField(max_length=100)
+    scout_region = models.CharField(max_length=100)
+    dom_prestige = models.IntegerField()
+    intl_prestige = models.IntegerField()
+    league_rep = models.IntegerField()
+    youth_scouting_region = models.CharField(max_length=100)
     
     def __str__(self):
         return self.name
 
 class Player(models.Model):
+    """
+    Represents a football player with detailed personal, professional, and performance data.
+
+    Attributes:
+        player_id (int): Unique identifier for the player, typically matching an external data source.
+        name (str): The player's full name. This is a CharField with a maximum length of 100 characters and is indexed for faster queries.
+        slug (str): URL-friendly version of the player's name, automatically generated if not provided. This is a SlugField with a maximum length of 150 characters and must be unique.
+        positions (list): Array of positions the player can play, limited to 3 positions per player. Each position is selected from POSITION_CHOICES.
+        nationality (str): The player's country of origin. This is a CharField with a maximum length of 100 characters.
+        birth_date (date): The player's date of birth.
+        birth_year (int): The year of birth, derived from birth_date. This field can be blank or null.
+        age (int): The player's age at the time of record creation or update.
+            NOTE: Consider removing this field and using the current_age property method instead
+            to ensure age is always current. Storing age as a field requires regular updates
+            to remain accurate, while a property method will always calculate the current value.
+        face_pic_url (str): URL to the player's profile image. This field can be blank or null.
+        club (Club): The player's current club. This is a ForeignKey to the Club model with CASCADE delete behavior.
+            NOTE: The CASCADE delete behavior means that if a Club is deleted, all associated
+            Player records will also be deleted. Consider using PROTECT or SET_NULL if you want
+            to preserve player data when clubs are removed.
+        wage_eur (decimal): The player's wage in Euros. This is a DecimalField with 10 digits and 2 decimal places.
+        wage_usd (decimal): The player's wage in US Dollars. This is a DecimalField with 10 digits and 2 decimal places.
+        wage_gbp (decimal): The player's wage in British Pounds. This is a DecimalField with 10 digits and 2 decimal places.
+        contract_start (date): The start date of the player's current contract.
+        contract_end (date): The end date of the player's current contract.
+        contract_loan (bool): Indicates if the player is on loan. This is a BooleanField with a default value of False.
+        overall (int): The player's overall rating on a scale from 1 to 99.
+            This field is validated with MinValueValidator(1) and MaxValueValidator(99) to ensure
+            the value remains within the valid rating range. This enforces data integrity at the
+            database level and prevents invalid ratings from being stored.
+        potential (int): The player's potential rating on a scale from 1 to 99.
+            Like the overall field, this uses MinValueValidator(1) and MaxValueValidator(99) to
+            ensure valid values. The potential should represent the maximum possible overall rating
+            the player could achieve during their career, so it should be greater than or equal to
+            the current overall rating.
+        last_import_date (datetime): Timestamp of when the player data was last imported or updated.
+        import_source (str): Source of the imported data (e.g., "FIFA23_CSV_IMPORT"). This field can be blank or null.
+
+    Methods:
+        save(*args, **kwargs): Overridden to automatically generate slug and calculate birth_year if not provided.
+        current_age(): Property method that calculates the player's current age based on birth_date and current date.
+            NOTE: This is the recommended way to get a player's current age rather than relying on
+            the static age field. Consider using this property method exclusively and possibly
+            removing the age field to avoid data inconsistency.
+
+    Meta:
+        verbose_name (str): Human-readable singular name for the model.
+        verbose_name_plural (str): Human-readable plural name for the model.
+        ordering (list): Default ordering for queries, prioritizing overall rating (descending) and then name.
+        indexes (list): Database indexes for optimizing queries on frequently accessed fields.
+    """
     # Primary identifiers
-    player_id = models.IntegerField(unique=True)  # Keep this if it matches your CSV column    
+    player_id = models.IntegerField(unique=True)  # Keep this if it matches your CSV column
+        
     # Basic info
     name = models.CharField(max_length=100, db_index=True)
     slug = models.SlugField(max_length=150, unique=True, blank=True)  # URL-friendly name
@@ -43,9 +134,15 @@ class Player(models.Model):
         ('CF', 'Center Forward'),
     ]
     
-    primary_position = models.CharField(max_length=50, choices=POSITION_CHOICES)
-    secondary_position = models.CharField(max_length=50, choices=POSITION_CHOICES, blank=True, null=True)
-    tertiary_position = models.CharField(max_length=50, choices=POSITION_CHOICES, blank=True, null=True)
+    positions = ArrayField(
+        models.CharField(
+            max_length=3,  # Change to match the max length of position codes (e.g., "CAM")
+            choices=POSITION_CHOICES
+        ),
+        size=3,  # Limits to 3 positions per player
+        blank=True, 
+        null=True
+    )
     
     # Personal details
     nationality = models.CharField(max_length=100)
@@ -84,7 +181,7 @@ class Player(models.Model):
         ordering = ['-overall', 'name']
         indexes = [
             models.Index(fields=['name', 'overall']),
-            models.Index(fields=['club', 'primary_position']),
+            models.Index(fields=['club', 'positions']),
         ]
     
     def __str__(self):
@@ -224,20 +321,6 @@ class PlayerStats(models.Model):
 
     def __str__(self):
         return f"{self.season.name} - {self.player.name}"
-
-class Competition(models.Model):
-    """
-    Represents a football competition.
-
-    Attributes:
-        name (str): The name of the competition. This is a CharField with a maximum length of 100 characters.
-        competition_type (str): The type of competition (e.g., "League", "Cup"). This is a CharField with a maximum length of 50 characters.
-    """
-    name = models.CharField(max_length=100)  # e.g. "Premier League", "Champions League"
-    competition_type = models.CharField(max_length=50)  # e.g. "League", "Cup"
-    
-    def __str__(self):
-        return self.name
 
 class CompetitionWinner(models.Model):
     """
