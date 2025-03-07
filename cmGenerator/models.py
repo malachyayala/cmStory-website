@@ -15,8 +15,10 @@ class Competition(models.Model):
             indexed for faster queries, and must be unique.
         slug (str): URL-friendly version of the competition name, automatically generated if not provided.
             This is a SlugField with a maximum length of 120 characters and must be unique.
-        competition_type (str): The type of competition (e.g., "League", "Cup", "Super Cup").
-            This is a CharField with a maximum length of 50 characters.
+        competition_type (str): The type of competition. Must be one of:
+            - LEAGUE: Regular league competition
+            - CUP: Knockout cup competition
+            - INTERNATIONAL: International competition
         country (str): The country where the competition takes place. This is a CharField with a
             maximum length of 100 characters and is indexed for faster queries.
         logo_url (str): URL to the competition's logo image. This is a URLField that can be blank or null.
@@ -36,14 +38,36 @@ class Competition(models.Model):
         verbose_name_plural (str): Human-readable plural name for the model.
         indexes (list): Database indexes for optimizing queries on frequently accessed fields.
     """
+    COMPETITION_TYPES = [
+        ('LEAGUE', 'League'),
+        ('CUP', 'Cup'),
+        ('INTERNATIONAL', 'International'),
+    ]
+    
     name = models.CharField(max_length=100, db_index=True, unique=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
-    competition_type = models.CharField(max_length=50)
+    competition_type = models.CharField(
+        max_length=50,
+        choices=COMPETITION_TYPES,
+        default='LEAGUE',
+        db_index=True  # Add index for faster filtering by type
+    )
     country = models.CharField(max_length=100, db_index=True)
     logo_url = models.URLField(null=True, blank=True)
-    league_rep = models.IntegerField(validators=[MinValueValidator(0)])
-    tier = models.IntegerField(validators=[MinValueValidator(1)])
-    min_wage_budget = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    league_rep = models.IntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(5)],  # Add max value
+        help_text="League reputation from 0 to 5"
+    )
+    tier = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],  # Add max value
+        help_text="Competition tier from 1 (top) to 5"
+    )
+    min_wage_budget = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(0)],
+        help_text="Minimum wage budget in euros"
+    )
 
     class Meta:
         verbose_name = "Competition"
@@ -51,6 +75,19 @@ class Competition(models.Model):
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['country']),
+        ]
+        constraints = [
+            # Ensure tier 1 is unique per country for leagues
+            models.UniqueConstraint(
+                fields=['country', 'tier'],
+                condition=models.Q(competition_type='LEAGUE', tier=1),
+                name='unique_tier1_league_per_country'
+            ),
+            # Ensure league_rep is less than or equal to tier
+            models.CheckConstraint(
+                check=models.Q(league_rep__lte=models.F('tier')),
+                name='league_rep_less_than_or_equal_to_tier'
+            )
         ]
 
     def __str__(self):
@@ -63,7 +100,6 @@ class Competition(models.Model):
 
     def get_absolute_url(self):
         return reverse("competition_detail", kwargs={"slug": self.slug})
-
 
 class Club(models.Model):
     """
