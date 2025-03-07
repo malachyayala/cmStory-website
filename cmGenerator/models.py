@@ -3,27 +3,73 @@ from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.contrib.postgres.fields import ArrayField
+from django.urls import reverse
+
 
 class Competition(models.Model):
     """
-    Represents a football competition.
+    Represents a football competition such as a league or cup tournament.
 
     Attributes:
-        name (str): The name of the competition. This is a CharField with a maximum length of 100 characters.
-        competition_type (str): The type of competition (e.g., "League", "Cup"). This is a CharField with a maximum length of 50 characters.
+        name (str): The name of the competition. This is a CharField with a maximum length of 100 characters,
+            indexed for faster queries, and must be unique.
+        slug (str): URL-friendly version of the competition name, automatically generated if not provided.
+            This is a SlugField with a maximum length of 120 characters and must be unique.
+        competition_type (str): The type of competition (e.g., "League", "Cup", "Super Cup").
+            This is a CharField with a maximum length of 50 characters.
+        country (str): The country where the competition takes place. This is a CharField with a
+            maximum length of 100 characters and is indexed for faster queries.
+        logo_url (str): URL to the competition's logo image. This is a URLField that can be blank or null.
+        league_rep (int): The reputation level of the league. This is an IntegerField with a minimum
+            value of 0, validated using MinValueValidator.
+        tier (int): The tier level of the competition within its country's football pyramid.
+            This is an IntegerField with a minimum value of 1, validated using MinValueValidator.
+        min_wage_budget (decimal): The minimum wage budget for clubs in this competition.
+            This is a DecimalField with 10 digits, 2 decimal places, and a minimum value of 0.
+
+    Methods:
+        save(*args, **kwargs): Overridden to automatically generate slug if not provided.
+        get_absolute_url(): Returns the URL for the competition's detail view.
+
+    Meta:
+        verbose_name (str): Human-readable singular name for the model.
+        verbose_name_plural (str): Human-readable plural name for the model.
+        indexes (list): Database indexes for optimizing queries on frequently accessed fields.
     """
-    name = models.CharField(max_length=100)  # e.g. "Premier League", "Champions League"
-    competition_type = models.CharField(max_length=50)  # e.g. "League", "Cup"
-    
+    name = models.CharField(max_length=100, db_index=True, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
+    competition_type = models.CharField(max_length=50)
+    country = models.CharField(max_length=100, db_index=True)
+    logo_url = models.URLField(null=True, blank=True)
+    league_rep = models.IntegerField(validators=[MinValueValidator(0)])
+    tier = models.IntegerField(validators=[MinValueValidator(1)])
+    min_wage_budget = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+
+    class Meta:
+        verbose_name = "Competition"
+        verbose_name_plural = "Competitions"
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['country']),
+        ]
+
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def get_absolute_url(self):
+        return reverse("competition_detail", kwargs={"slug": self.slug})
+
 
 class Club(models.Model):
     """
     Represents a football club.
 
     Attributes:
-        league_id (int): The unique identifier for the league. This is an IntegerField.
         league (Competition): The league in which the club competes. This is a ForeignKey to the Competition model with CASCADE delete.
         name (str): The name of the club. This is a CharField with a maximum length of 255 characters.
         club_logo_small_url (str): URL to the small version of the club's logo. This is a URLField that can be blank or null.
@@ -39,7 +85,6 @@ class Club(models.Model):
         league_rep (int): The league reputation of the club. This is an IntegerField.
         youth_scouting_region (str): The youth scouting region of the club. This is a CharField with a maximum length of 100 characters.
     """
-    league_id = models.IntegerField()
     league = models.ForeignKey(Competition, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     club_logo_small_url = models.URLField(null=True, blank=True)
@@ -375,4 +420,3 @@ class AwardWinner(models.Model):
     
     class Meta:
         unique_together = ['season', 'award']
-
