@@ -11,7 +11,7 @@ from django.contrib.auth import logout
 from django.shortcuts import get_object_or_404
 from django.http import HttpRequest
 import os
-from .models import Season, Story, SeasonPlayerStats, SeasonAwards
+from .models import Season, Story
 from .utils.story_generator import generate_all
 from django.views.decorators.http import require_http_methods
 from .models import Transfer
