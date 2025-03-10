@@ -261,7 +261,6 @@ def my_stories(request: HttpRequest) -> HttpResponse:
     return render(request, 'cmGenerator/my_stories.html', {'stories': stories})
 
 @login_required
-@login_required
 def add_season(request, story_id):
     if request.method == 'POST':
         try:
@@ -292,26 +291,6 @@ def season_stats_view(request, story_id):
         'season_stats': season_stats,
         'seasons': seasons  # Add this line
     })
-
-@login_required
-def create_story(request):
-    if request.method == 'POST':
-        form = StoryForm(request.POST) # type: ignore
-        if form.is_valid():
-            story = form.save(commit=False)
-            story.user = request.user
-            story.save()
-            
-            # Create initial season
-            Season.objects.create(
-                story=story,
-                season="24/25"
-            )
-            
-            return redirect('season_stats', story_id=story.id)
-    else:
-        form = StoryForm() # type: ignore
-    return render(request, 'cmGenerator/create_story.html', {'form': form})
 
 @login_required
 def save_season_awards(request, story_id):

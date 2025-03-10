@@ -15,9 +15,8 @@ class Competition (models.Model):
         maximum length of 100 characters, indexed for faster queries,
         and must be unique.
         slug (str): URL-friendly version of the competition name,
-         automatically generated if not provided.
-             This is a SlugField with a maximum length of 120 characters and
-             must be unique.
+        automatically generated if not provided. This is a SlugField with a
+        maximum length of 120 characters and must be unique.
         competition_type (str): The type of competition. Must be one of:
             - LEAGUE: Regular league competition
             - CUP: Knockout cup competition
@@ -95,11 +94,6 @@ class Competition (models.Model):
                 condition = models.Q (competition_type = 'LEAGUE', tier = 1),
                 name = 'unique_tier1_league_per_country'
             ),
-            # Ensure league_rep is less than or equal to tier
-            models.CheckConstraint (
-                check = models.Q (league_rep__lte = models.F ('tier')),
-                name = 'league_rep_less_than_or_equal_to_tier'
-            )
         ]
 
     def __str__ (self):
@@ -423,13 +417,6 @@ class Player (models.Model):
                     contract_end__gt = models.F ('contract_start')
                     ),
                 name = 'contract_end_after_start'
-            ),
-            # Ensure birth_year matches birth_date
-            models.CheckConstraint (
-                check = models.Q (
-                    birth_year = models.ExtractYear ('birth_date')
-                    ),
-                name = 'birth_year_matches_date'
             ),
             # Ensure wages are positive
             models.CheckConstraint (
@@ -1132,14 +1119,19 @@ class AwardWinner (models.Model):
         unique_together (tuple): Ensures that the combination of season and
         award is unique.
     """
-    story = models.ForeignKey (
-        Story, on_delete = models.CASCADE, related_name = 'award_winners'
-        )
-    season = models.ForeignKey (
-        Season, on_delete = models.CASCADE, related_name = 'award_winners'
-        )
-    award = models.ForeignKey (IndividualAward, on_delete = models.CASCADE)
-    player = models.ForeignKey (Player, on_delete = models.CASCADE)
+    story = models.ForeignKey(
+        Story, on_delete=models.CASCADE, related_name='award_winners'
+    )
+    season = models.ForeignKey(
+        Season, on_delete=models.CASCADE, related_name='award_winners'
+    )
+    award = models.ForeignKey(IndividualAward, on_delete=models.CASCADE)
+    player = models.ForeignKey(Player, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ['season', 'award']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['season', 'award'],
+                name='unique_season_award'
+            )
+        ]
